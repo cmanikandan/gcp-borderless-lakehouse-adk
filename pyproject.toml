@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gcp-borderless-lakehouse-adk"
+version = "0.1.0"
+description = "Google Cloud Borderless Lakehouse Cross-Cloud Federation (Databricks Unity Catalog & AWS Glue), Intelligent Caching FinOps, and Multi-Agent Analytics with Google ADK 2.x & Gemini 3.8 Flash"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Mani" }
+]
+keywords = [
+  "google-cloud",
+  "lakehouse",
+  "bigquery",
+  "apache-iceberg",
+  "databricks-unity-catalog",
+  "aws-glue",
+  "google-adk",
+  "gemini-3.8-flash"
+]
+dependencies = [
+  "google-adk>=2.13.0",
+  "google-cloud-bigquery>=3.47.0",
+  "google-genai>=2.34.0",
+  "pydantic>=2.10.0",
+  "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lakehouse_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

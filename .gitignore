@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+
+# Environment & Secrets (NEVER commit credentials!)
+.env
+*.pem
+*credentials*.json
+!infra/aws-glue/trust_policy_placeholder.json
+!infra/aws-glue/permissions_policy.json
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

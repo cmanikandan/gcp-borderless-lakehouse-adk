@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GoogleCloudLakehouseOIDCFederation",
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "accounts.google.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "accounts.google.com:sub": "PLACEHOLDER_BIGLAKE_SA_ID",
+          "accounts.google.com:oaud": "PLACEHOLDER_BIGLAKE_SA_ID"
+        }
+      }
+    }
+  ]
+}

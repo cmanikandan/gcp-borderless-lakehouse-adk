@@ -1,0 +1,39 @@
+name: CI — Borderless Lakehouse ADK Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Verify ADK Agents, FinOps Telemetry & Diagrams
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.11
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run pytest suite
+        run: uv run pytest -v
+
+      - name: Validate Draw.io & SVG XML diagrams
+        run: |
+          uv run python -c "
+          import xml.etree.ElementTree as ET
+          ET.parse('docs/diagrams/borderless_lakehouse_architecture.drawio')
+          ET.parse('docs/diagrams/borderless_lakehouse_architecture.svg')
+          print('All XML/SVG architecture diagrams valid!')
+          "
+
+      - name: Run FinOps & Agentic Cache Demo Smoke Check
+        run: uv run python scripts/demo_agent_cache_finops.py

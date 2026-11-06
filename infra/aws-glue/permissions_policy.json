@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "GlueCatalogReadOnlyMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "glue:GetCatalog",
+        "glue:GetDatabase",
+        "glue:GetDatabases",
+        "glue:GetTable",
+        "glue:GetTables",
+        "glue:GetPartition",
+        "glue:GetPartitions",
+        "glue:GetUserDefinedFunctions"
+      ],
+      "Resource": [
+        "arn:aws:glue:${AWS_REGION}:${AWS_ACCOUNT_ID}:catalog",
+        "arn:aws:glue:${AWS_REGION}:${AWS_ACCOUNT_ID}:database/${GLUE_DATABASE}",
+        "arn:aws:glue:${AWS_REGION}:${AWS_ACCOUNT_ID}:table/${GLUE_DATABASE}/*"
+      ]
+    },
+    {
+      "Sid": "S3IcebergDataAndManifestRead",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${S3_ICEBERG_BUCKET}",
+        "arn:aws:s3:::${S3_ICEBERG_BUCKET}/*"
+      ]
+    },
+    {
+      "Sid": "OptionalS3TablesSupport",
+      "Effect": "Allow",
+      "Action": [
+        "s3tables:GetTable",
+        "s3tables:GetTableBucket",
+        "s3tables:GetNamespace",
+        "s3tables:GetTableData",
+        "s3tables:GetTableMetadataLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3tables:${AWS_REGION}:${AWS_ACCOUNT_ID}:bucket/*"
+      ]
+    }
+  ]
+}

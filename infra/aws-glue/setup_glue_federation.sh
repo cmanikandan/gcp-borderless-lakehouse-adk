@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Google Cloud Borderless Lakehouse -> AWS Glue Data Catalog Federation + Cache
-# Principal Architect Reference Script (GA)
+# Cloud Practitioner Proof-of-Concept (POC) Script
 # ==============================================================================
 set -euo pipefail
 
 # Required environment variables (override or export via .env)
 export PROJECT_ID="${PROJECT_ID:-omni-retail-lakehouse-prod}"
 export GCP_REGION="${GCP_REGION:-us-east4}"          # Paired with AWS us-east-1 for minimal latency
-export AWS_ACCOUNT_ID="${AWS_ACCOUNT_ID:-123456789012}"
+if [[ -z "${AWS_ACCOUNT_ID:-}" ]]; then
+  AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text 2>/dev/null || echo '123456789012')"
+  export AWS_ACCOUNT_ID
+fi
 export AWS_REGION="${AWS_REGION:-us-east-1}"
 export AWS_ROLE_NAME="${AWS_ROLE_NAME:-lakehouse_glue_federation_role}"
 export GLUE_DATABASE="${GLUE_DATABASE:-fulfillment}"
-export S3_ICEBERG_BUCKET="${S3_ICEBERG_BUCKET:-omniretail-logistics-iceberg-use1}"
+export S3_ICEBERG_BUCKET="${S3_ICEBERG_BUCKET:-omniretail-logistics-iceberg-${AWS_ACCOUNT_ID}}"
 export GLUE_CATALOG_ID="${GLUE_CATALOG_ID:-aws_glue_logistics}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

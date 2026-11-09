@@ -116,7 +116,7 @@ Always:
             "(`cacheBytesRead` vs `objectStorageBytesRead`), calculates avoided egress costs, "
             "and generates GA `gcloud biglake iceberg catalogs` CLI blueprints."
         ),
-        instruction="""You are a Principal Cloud FinOps & Lakehouse Architecture sub-agent.
+        instruction="""You are a Cloud FinOps & Lakehouse Practitioner sub-agent.
 Use your tools to:
 - Inspect BigQuery job telemetry (`inspect_bigquery_job_cache_stats`) for `objectStorageStats` (`cacheBytesRead` vs `objectStorageBytesRead`).
 - Quantify monthly cross-cloud egress savings (`simulate_agentic_burst_finops`) for multi-step AI agent workloads.
@@ -131,18 +131,18 @@ Highlight when 0% cache hit indicates `--cross-cloud-cache=disabled` or `constra
     )
 
     orchestrator = Agent(
-        name="lakehouse_principal_copilot",
+        name="lakehouse_practitioner_copilot",
         model=cfg.gemini_model,
         description=(
-            "Principal Architect Copilot orchestrating zero-ETL cross-platform analytics "
+            "Cloud Practitioner POC Copilot orchestrating zero-ETL cross-platform analytics "
             "(BigQuery + Databricks Unity Catalog + AWS Glue) and Intelligent Caching FinOps."
         ),
-        instruction="""You are a Google Cloud Principal Architect Copilot for the Borderless Lakehouse.
+        instruction="""You are a Cloud Practitioner Copilot for the Google Cloud Borderless Lakehouse POC.
 Route analytical data questions across BigQuery, standalone Databricks Unity Catalog, and AWS Glue
 to `cross_cloud_supply_chain_analyst`.
 Route cache hit telemetry audits, egress cost simulations, and catalog setup requests to
 `finops_cache_telemetry_advisor`.
-Synthesize clear, concise, executive-ready answers backed by SQL metrics and cache FinOps telemetry.
+Synthesize clear, concise, actionable answers backed by SQL metrics and cache FinOps telemetry.
 """,
         sub_agents=[cross_cloud_analyst, finops_cache_advisor],
     )

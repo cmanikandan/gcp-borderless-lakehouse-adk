@@ -1,6 +1,8 @@
 # AGENTS.md — AI Coding & Runtime Agent Guide
 
-This repository contains reference infrastructure, cross-platform SQL/Spark analytics, and a production-styled **Google Agent Development Kit (`google-adk` 2.x)** multi-agent system powered by **`gemini-3.8-flash`** on top of **Google Cloud Borderless Lakehouse**.
+> **Proof-of-Concept (POC) Notice**: This repository is an educational cloud practitioner Proof of Concept (POC) exploring cross-cloud data federation, intelligent caching, and agentic analytics. Always consult the official **Google Cloud**, **Databricks**, and **AWS** documentation for production security, IAM, networking, and governance configurations.
+
+This repository contains end-to-end POC provisioning scripts, cross-platform SQL/Spark analytics, teardown automation, and a **Google Agent Development Kit (`google-adk` 2.x)** multi-agent system powered by **`gemini-3.8-flash`** on top of **Google Cloud Lakehouse**.
 
 Use this file as the source of truth when modifying agents, SQL/Spark workloads, infrastructure scripts, or tests.
 
@@ -11,7 +13,7 @@ Use this file as the source of truth when modifying agents, SQL/Spark workloads,
 `src/lakehouse_agent/agent.py` exports `root_agent` so the project runs out-of-the-box with `adk web src` and `adk run src/lakehouse_agent`:
 
 ```text
-lakehouse_principal_copilot (Root Orchestrator — gemini-3.8-flash)
+lakehouse_practitioner_copilot (Root Orchestrator — gemini-3.8-flash)
 ├── cross_cloud_supply_chain_analyst (Sub-Agent — gemini-3.8-flash)
 │   └── BigQueryToolset (WriteMode.BLOCKED, max_bytes_billed cap, 4-part federated SQL)
 └── finops_cache_telemetry_advisor (Sub-Agent — gemini-3.8-flash)
@@ -22,7 +24,7 @@ lakehouse_principal_copilot (Root Orchestrator — gemini-3.8-flash)
 
 ---
 
-## 2. Architectural Invariants (Do Not Violate)
+## 2. Technical Invariants (Do Not Violate)
 
 1. **Google ADK 2.x Integration Path**:
    - Always import `BigQueryToolset` and `BigQueryCredentialsConfig` from `google.adk.integrations.bigquery` (and `BigQueryToolConfig`, `WriteMode` from `google.adk.integrations.bigquery.config`).
@@ -31,7 +33,7 @@ lakehouse_principal_copilot (Root Orchestrator — gemini-3.8-flash)
 
 2. **Standalone Databricks Platform vs. AWS Cloud**:
    - Treat **Databricks Unity Catalog** (accessed via its own standalone **Databricks Portal / Free Edition / Community Edition**) and **AWS Glue Data Catalog** (on **AWS S3**) as **two separate, independent external platforms** federated into Google Cloud (`us-east4`). Do **not** assume or hardcode Databricks inside AWS.
-   - Google Cloud Lakehouse **does not support Databricks internal `default storage`**. Every Unity Catalog schema/table federated to Lakehouse must use a registered **Unity Catalog External Location**, have **External data access** enabled on the metastore, and grant `EXTERNAL USE SCHEMA` to the service principal.
+   - Google Cloud Lakehouse **does not support Databricks internal `default storage`**. Every Unity Catalog schema/table federated to Lakehouse must use a registered **Unity Catalog External Location** (see `infra/databricks-unity/README.md`), have **External data access** enabled on the metastore, and grant `EXTERNAL USE SCHEMA` to the service principal.
 
 3. **4-Part Federated Table Identifiers**:
    - Native BigQuery tables use 3-part names: `` `project.dataset.table` ``.
@@ -66,7 +68,10 @@ uv run python scripts/demo_agent_cache_finops.py --live-job-id <BQ_JOB_ID> --loc
 # Launch interactive Google ADK Dev UI
 uv run adk web src
 
-# Validate shell scripts and Draw.io / SVG XML diagrams
-for f in infra/*/*.sh spark/*.sh; do bash -n "$f"; done
+# Validate shell scripts and XML/SVG diagrams
+for f in infra/*.sh infra/*/*.sh spark/*.sh scripts/*.sh; do bash -n "$f"; done
 uv run python -c "import xml.etree.ElementTree as ET; ET.parse('docs/diagrams/borderless_lakehouse_architecture.drawio'); ET.parse('docs/diagrams/borderless_lakehouse_architecture.svg')"
+
+# Uninstall / tear down all POC cloud resources when finished testing
+bash infra/teardown_all.sh
 ```

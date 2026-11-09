@@ -25,7 +25,7 @@ def test_adk_multi_agent_wiring_and_no_deprecation_warnings() -> None:
     ]
     assert adk_deprecations == [], f"Unexpected ADK deprecations: {adk_deprecations}"
 
-    assert orchestrator.name == "lakehouse_principal_copilot"
+    assert orchestrator.name == "lakehouse_practitioner_copilot"
     assert orchestrator.model == "gemini-3.8-flash"
     assert len(orchestrator.sub_agents) == 2
 

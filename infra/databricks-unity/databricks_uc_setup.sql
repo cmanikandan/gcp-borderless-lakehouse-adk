@@ -3,12 +3,11 @@
 -- Run in the Databricks SQL Editor directly inside your Databricks Portal!
 -- =============================================================================
 
--- ARCHITECT IMPORTANT NOTE (Databricks Free / Community Edition & Enterprise):
+-- PRACTITIONER POC NOTE (Databricks Free / Community Edition & Standard Workspaces):
 -- 1. Enable "External data access" in your Databricks Unity Catalog Metastore settings.
 -- 2. Google Cloud Lakehouse requires Unity Catalog schemas/tables to be backed by a
---    registered Unity Catalog External Location (e.g., an external object bucket URI
---    configured under Catalog -> External Data -> External Locations), NOT Databricks
---    internal default metastore storage.
+--    registered Unity Catalog External Location (see infra/databricks-unity/README.md),
+--    NOT Databricks internal default metastore storage.
 CREATE CATALOG IF NOT EXISTS omniretail_merch;
 
 CREATE SCHEMA IF NOT EXISTS omniretail_merch.supply_chain

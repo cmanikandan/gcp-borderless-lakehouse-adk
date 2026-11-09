@@ -294,4 +294,4 @@ def get_federated_catalog_cli_blueprint(
     else:
         raise ValueError("Unsupported provider. Choose 'unity' or 'glue'.")
 
-    return {"provider": norm, "gcloud_command": cmd, "architect_note": note}
+    return {"provider": norm, "gcloud_command": cmd, "practitioner_note": note}

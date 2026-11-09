@@ -26,7 +26,14 @@ jobs:
       - name: Run pytest suite
         run: uv run pytest -v
 
-      - name: Validate Draw.io & SVG XML diagrams
+      - name: Validate shell scripts syntax
+        run: |
+          for shf in infra/*.sh infra/*/*.sh spark/*.sh scripts/*.sh; do
+            bash -n "$shf"
+            echo "Syntax OK: $shf"
+          done
+
+      - name: Validate XML & SVG architecture diagrams
         run: |
           uv run python -c "
           import xml.etree.ElementTree as ET

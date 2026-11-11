@@ -13,11 +13,16 @@ export GLUE_CATALOG_ID="${GLUE_CATALOG_ID:-aws_glue_logistics}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-RENDERED_SQL="$(sed \
-  -e "s/omni-retail-lakehouse-prod/${PROJECT_ID}/g" \
-  -e "s/dbx_unity_merch/${UNITY_FED_CATALOG_ID}/g" \
-  -e "s/aws_glue_logistics/${GLUE_CATALOG_ID}/g" \
-  "${REPO_ROOT}/sql/02_cross_cloud_supply_chain_join.sql")"
+if [[ "${1:-}" == "--glue-only" ]]; then
+  echo "    (Mode: --glue-only | Joining Native BigQuery commerce_core.orders + AWS Glue shipment_events)"
+  RENDERED_SQL="SELECT o.order_id, o.customer_region, o.sku_id, s.carrier, s.shipment_status, s.delay_hours, ROUND(o.quantity * o.unit_sale_price_usd, 2) AS order_revenue_usd FROM \`${PROJECT_ID}.commerce_core.orders\` AS o INNER JOIN \`${PROJECT_ID}.${GLUE_CATALOG_ID}.fulfillment.shipment_events\` AS s ON o.order_id = s.order_id WHERE s.delay_hours > 12 ORDER BY order_revenue_usd DESC;"
+else
+  RENDERED_SQL="$(sed \
+    -e "s/omni-retail-lakehouse-prod/${PROJECT_ID}/g" \
+    -e "s/dbx_unity_merch/${UNITY_FED_CATALOG_ID}/g" \
+    -e "s/aws_glue_logistics/${GLUE_CATALOG_ID}/g" \
+    "${REPO_ROOT}/sql/02_cross_cloud_supply_chain_join.sql")"
+fi
 
 echo "==> [Run #1 — Cold Scan] Populating Google Cloud regional block cache in ${GCP_REGION}..."
 echo "${RENDERED_SQL}" | bq query \

@@ -84,6 +84,20 @@ for BKT in "${UC_EXTERNAL_GCS_BUCKET}" "${STAGING_BUCKET:-${PROJECT_ID}-spark-st
   fi
 done
 
+# Delete optional Cloud NAT & Cloud Router created by spark/submit_managed_spark_batch.sh (if present)
+if gcloud compute routers describe "lakehouse-spark-nat-router" --region="${GCP_REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+  gcloud compute routers nats delete "lakehouse-spark-nat-gw" \
+    --router="lakehouse-spark-nat-router" \
+    --region="${GCP_REGION}" \
+    --project="${PROJECT_ID}" \
+    --quiet 2>/dev/null || true
+  gcloud compute routers delete "lakehouse-spark-nat-router" \
+    --region="${GCP_REGION}" \
+    --project="${PROJECT_ID}" \
+    --quiet 2>/dev/null \
+    && echo "    Deleted Cloud Router & NAT: lakehouse-spark-nat-router / lakehouse-spark-nat-gw" || true
+fi
+
 # ------------------------------------------------------------------------------
 # 2. AWS Glue Table/Database, IAM Role & S3 Bucket
 # ------------------------------------------------------------------------------

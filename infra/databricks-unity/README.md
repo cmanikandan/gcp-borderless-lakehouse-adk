@@ -6,7 +6,8 @@
 
 ## Step 1: Access Your Standalone Databricks Portal & Workspace URL
 
-1. Sign up or log in at **[https://login.databricks.com](https://login.databricks.com)** (select **Databricks Free Edition** / serverless trial if you don't already have a workspace).
+1. Sign up or log in at **[https://login.databricks.com](https://login.databricks.com)**.
+   * **Important Hands-On Tier Note (*Free Edition* vs. *14-Day Free Trial / Standard Workspace*)**: On **Databricks Free Edition**, Databricks manages a shared multi-tenant metastore where users are **not** Metastore Admins—so the metastore-level **External data access** toggle and custom cloud **Storage Credentials** are locked (`External Data Access from non Databricks Compute environment is disabled for metastore`). To test Unity Catalog federation into Google Cloud Lakehouse, use a **14-day Databricks Free Trial** (or any Pay-As-You-Go / standard workspace where you are Metastore Admin; serverless SQL only bills for the ~10 seconds needed to run the seed query). *(If you only want to use Free Edition without upgrading, you can still run the full **AWS Glue + Amazon S3 + BigQuery** zero-ETL join immediately via `bash scripts/run_cross_cloud_join.sh --glue-only`!)*
 2. Copy your workspace hostname from your browser's address bar **without** `https://` or trailing paths—for example:
    ```text
    dbc-a1b2c3d4-e5f6.cloud.databricks.com
@@ -20,7 +21,7 @@
 Google Cloud Lakehouse reads Apache Iceberg / Delta UniForm snapshots via the Unity Catalog REST API, which is disabled by default on fresh metastores:
 
 1. In the left sidebar of your Databricks Portal, click **Catalog**.
-2. Click the **Gear Icon (Metastore Settings)** at the top right (or open **Settings -> Workspace admin / Identity and access / Compute -> Data** depending on your portal tier).
+2. Click the **Gear Icon (Metastore Settings)** at the top right (requires **Metastore Admin**).
 3. Enable **External data access** (*Allow external engines to access data in Unity Catalog*).
 
 ---
@@ -48,8 +49,6 @@ Google Cloud Lakehouse **does not support Databricks internal `default storage`*
    * **Storage credential**: `lakehouse_poc_cred`
    * **URL**: `gs://<YOUR_PROJECT_ID>-dbx-uc-ext/uc-external`
    * Click **Create** (and click **Test connection** to verify read/write).
-
-> *Note on Databricks Free Edition quotas/tiers*: If your Free Edition account tier restricts custom cloud Storage Credentials in the UI, upgrade to the Pay-As-You-Go trial toggle in the portal (no fixed base fee; serverless SQL only bills while running your 10-second seed query) so **External Data -> Credentials** is unlocked.
 
 ---
 

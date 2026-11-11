@@ -8,6 +8,7 @@ SELECT
   m.product_name,
   r.supplier_name,
   r.geopolitical_risk_score,
+  s.carrier,
   s.shipment_status,
   s.delay_hours,
   COUNT(DISTINCT o.order_id) AS affected_orders,
@@ -34,6 +35,6 @@ WHERE
   o.order_ts >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
   AND (s.delay_hours > 12 OR r.geopolitical_risk_score >= 0.65)
 GROUP BY
-  1, 2, 3, 4, 5, 6, 7
+  1, 2, 3, 4, 5, 6, 7, 8
 ORDER BY
   gross_margin_exposure_usd DESC;

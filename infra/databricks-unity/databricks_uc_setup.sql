@@ -63,7 +63,11 @@ GRANT USE CATALOG ON CATALOG omniretail_merch TO `<SERVICE_PRINCIPAL_APP_ID>`;
 GRANT USE SCHEMA, SELECT, EXTERNAL USE SCHEMA
   ON SCHEMA omniretail_merch.supply_chain TO `<SERVICE_PRINCIPAL_APP_ID>`;
 
--- 4. (Optional) Grant Interactive Query Privileges for End-User Identity Federation
-GRANT USE CATALOG ON CATALOG omniretail_merch TO `supply_chain_analysts`;
-GRANT USE SCHEMA, SELECT, EXTERNAL USE SCHEMA
-  ON SCHEMA omniretail_merch.supply_chain TO `supply_chain_analysts`;
+-- 4. (Optional — Multi-User OIDC Only) Uncomment ONLY after creating group `supply_chain_analysts`
+-- GRANT USE CATALOG ON CATALOG omniretail_merch TO `supply_chain_analysts`;
+-- GRANT USE SCHEMA, SELECT, EXTERNAL USE SCHEMA
+--   ON SCHEMA omniretail_merch.supply_chain TO `supply_chain_analysts`;
+
+-- 5. Verify Delta UniForm Iceberg metadata generation (~15-20s async after INSERT)
+DESCRIBE EXTENDED omniretail_merch.supply_chain.supplier_risk_scores;
+DESCRIBE EXTENDED omniretail_merch.supply_chain.sku_margins;

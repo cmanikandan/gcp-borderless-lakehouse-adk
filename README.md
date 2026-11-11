@@ -1,6 +1,6 @@
 # Google Cloud Borderless Lakehouse POC + Google ADK (`gemini-3.8-flash`)
 
-![Google Cloud Borderless Lakehouse Overview](docs/images/hero_borderless_lakehouse.jpg)
+![Google Cloud Lakehouse cross-cloud architecture overview](docs/images/hero_borderless_lakehouse.png)
 
 [![CI — Borderless Lakehouse ADK Suite](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/actions/workflows/ci.yml/badge.svg)](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -8,6 +8,13 @@
 [![Model](https://img.shields.io/badge/Gemini-3.8_Flash-34A853)](https://ai.google.dev/)
 
 > **Proof-of-Concept (POC) Disclaimer**: This repository is an educational **Proof of Concept (POC)** built from a cloud practitioner's perspective to explore and test cross-cloud lakehouse federation, regional caching, and agentic analytics end to end. It is **not** a drop-in production template. Before deploying to production, always consult the official [**Google Cloud Lakehouse documentation**](https://docs.cloud.google.com/lakehouse/docs/about-cross-cloud-data-access), [**Databricks Unity Catalog documentation**](https://docs.databricks.com/en/data-governance/unity-catalog/index.html), and [**AWS Glue & S3 documentation**](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-format-iceberg.html) for production security hardening, IAM least-privilege policies, networking, and service limits.
+
+---
+
+## Companion Articles (`discuss.google.dev` & Medium)
+
+* **Google Developer Program Forums (`discuss.google.dev`) Article**: [`blog/discuss_google_dev_post.md`](blog/discuss_google_dev_post.md) — formatted directly to the `discuss.google.dev` Googler Article guidelines (sentence-case headings, Discourse `<details>` blocks, community resource links, and absolute GitHub Raw PNG URLs so you can copy-paste raw Markdown straight into `https://discuss.google.dev/`).
+* **Companion Medium Post**: [`blog/medium_blog_post.md`](blog/medium_blog_post.md)
 
 ---
 
@@ -20,8 +27,6 @@
 3. **Intelligent Cross-Cloud Caching (GA)** (`--cross-cloud-cache="enabled"` & `crossCloudCacheOptions`): Opt-in regional block-level Parquet caching inside Google Cloud (`$0` additional Google Cloud fee) keeps active column blocks close to compute—verifying remote metadata and ACLs on every read while slashing repeat cross-cloud egress fees and accelerating subsequent BI and AI queries.
 4. **Unified Governance, Credential Vending & Identity Federation**: Automatic short-lived storage credential vending eliminates static cloud keys on worker clusters, optional **Cross-Cloud Interconnect** and **VPC Service Controls** protect the network perimeter, and **User Identity Federation** propagates end-user OIDC identities into **Databricks Unity Catalog** for row/column enforcement and `system.access.audit` logging.
 5. **Agent-Ready Data Foundation**: Federated tables behave like native tables in BigQuery (including zero-shot time-series forecasting with `AI.FORECAST` / TimesFM 2.0), enabling **Google Agent Development Kit (`google-adk` 2.x)** agents powered by **`gemini-3.8-flash`** to reason across multi-platform datasets while Intelligent Caching absorbs iterative agent query bursts.
-
-> **Companion Medium Blog Post**: Read the full narrative and walkthrough in [`blog/medium_blog_post.md`](blog/medium_blog_post.md).
 
 ---
 
@@ -46,16 +51,16 @@ In this POC, we provision three independent platforms from scratch and join them
 | Domain Dataset | Platform & Governance | Table Format | Query Path in BigQuery |
 | :--- | :--- | :--- | :--- |
 | **Live Customer Orders** | **Google Cloud BigQuery** (`us-east4`) | Native BigQuery | `` `<PROJECT_ID>.commerce_core.orders` `` |
-| **Supplier Risk & SKU Margins** | **Standalone Databricks Portal** (*Free / Community Edition* or Workspace Unity Catalog) | Delta + Iceberg UniForm | `` `<PROJECT_ID>.dbx_unity_merch.supply_chain.*` `` |
+| **Supplier Risk & SKU Margins** | **Standalone Databricks Portal** (*14-day Free Trial* or Standard Workspace Unity Catalog) | Delta + Iceberg UniForm | `` `<PROJECT_ID>.dbx_unity_merch.supply_chain.*` `` |
 | **Carrier Shipment Telemetry** | **AWS Cloud** (*AWS Glue Data Catalog + Amazon S3*, `us-east-1`) | Apache Iceberg v2 on S3 | `` `<PROJECT_ID>.aws_glue_logistics.fulfillment.shipment_events` `` |
 
 ---
 
 ## Reference Architecture & Multi-Engine Flow
 
-![Google Cloud Borderless Lakehouse Reference Architecture](docs/images/gcp_lakehouse_architecture.jpg)
+![Cross-cloud Google Cloud Lakehouse reference architecture](docs/images/gcp_lakehouse_architecture.png)
 
-![Zero-Secret Multi-Engine Iceberg REST Credential Vending](docs/images/iceberg_rest_credential_vending.jpg)
+![Multi-engine access with BigQuery SQL and Managed Service for Apache Spark](docs/images/iceberg_rest_credential_vending.png)
 
 *(Editable XML and high-DPI vector SVG diagram sources are included in [`docs/diagrams/`](docs/diagrams/).)*
 
@@ -69,10 +74,11 @@ gcp-borderless-lakehouse-adk/
 ├── Makefile                                                  # One-command developer workflows (test, doctor, adk-web)
 ├── README.md                                                 # End-to-end setup, testing & teardown guide
 ├── blog/
-│   └── medium_blog_post.md                                   # Companion Medium blog post (publication-ready)
+│   ├── discuss_google_dev_post.md                            # Self-publishable discuss.google.dev Googler Article
+│   └── medium_blog_post.md                                   # Companion Medium blog post
 ├── docs/
 │   ├── diagrams/                                             # Editable XML + vector .svg diagram sources
-│   └── images/                                               # High-DPI architecture, caching, Spark & ADK visuals
+│   └── images/                                               # Lossless .png & .jpg docs.cloud.google.com-style diagrams
 ├── infra/
 │   ├── aws-glue/
 │   │   ├── 00_bootstrap_aws_s3_glue_iceberg.sh               # Creates S3 bucket, Glue DB & Athena Iceberg v2 table
@@ -106,7 +112,7 @@ gcp-borderless-lakehouse-adk/
 │   └── agent.py                                              # Google ADK 2.x + gemini-3.8-flash multi-agent copilot
 ├── scripts/
 │   ├── preflight_doctor.py                                   # Local & cloud readiness diagnostics
-│   ├── run_cross_cloud_join.sh                               # Cold vs. Warm SQL join runner (--nouse_cache)
+│   ├── run_cross_cloud_join.sh                               # Cold vs. Warm SQL join runner (--nouse_cache / --glue-only)
 │   ├── demo_agent_cache_finops.py                            # Offline & live job cache FinOps analyzer
 │   └── run_agent_cli.py                                      # Headless multi-agent CLI runner & event trace printer
 └── tests/                                                    # Pytest suite (ADK wiring, REST discovery, FinOps, doctor)
@@ -122,7 +128,7 @@ You do **not** need pre-existing tables in AWS, Databricks, or BigQuery—follow
 
 * **Google Cloud CLI (`gcloud` & `bq`)** authenticated to a Google Cloud project with billing enabled (`gcloud auth login && gcloud config set project <YOUR_PROJECT_ID>`).
 * **AWS CLI (`aws`)** authenticated to an AWS account (`aws sts get-caller-identity`) with permissions for S3, Glue, Athena, and IAM.
-* **Standalone Databricks Account** accessed via the **Databricks Portal** at [https://login.databricks.com](https://login.databricks.com) (*Databricks Free / Community Edition* or standard workspace).
+* **Standalone Databricks Account** accessed via the **Databricks Portal** at [https://login.databricks.com](https://login.databricks.com). *(Hands-on tier note: Databricks Free Edition uses a shared multi-tenant metastore where the Metastore Admin **External data access** toggle is locked; use a free **14-day Databricks Free Trial** or standard workspace for Unity Catalog federation, or pass `--glue-only` to `scripts/run_cross_cloud_join.sh` to test BigQuery + AWS Glue standalone first.)*
 * **Python 3.11+** and [`uv`](https://docs.astral.sh/uv/) (`curl -LsSf https://astral.sh/uv/install.sh | sh`).
 
 Export your core environment variables once in your shell:
@@ -159,7 +165,7 @@ bash infra/aws-glue/setup_glue_federation.sh
 
 Google Cloud Lakehouse **does not support Databricks internal `default storage`**—your federated Unity Catalog schema must point to a registered **External Location**, have **External data access** enabled on the metastore, and grant **`EXTERNAL USE SCHEMA`**.
 
-*(Full click-by-click portal instructions are in [`infra/databricks-unity/README.md`](infra/databricks-unity/README.md).)*
+*(Full click-by-click portal instructions and tier notes are in [`infra/databricks-unity/README.md`](infra/databricks-unity/README.md).)*
 
 1. **Create the External Storage Bucket**:
    ```bash
@@ -176,7 +182,7 @@ Google Cloud Lakehouse **does not support Databricks internal `default storage`*
    * **Create External Location**: Go to **Catalog -> External Data -> External Locations -> Create external location**, name it `lakehouse_poc_ext_loc`, select `lakehouse_poc_cred`, and set URL to `gs://${PROJECT_ID}-dbx-uc-ext/uc-external`.
    * **Create Service Principal + OAuth Secret**: Go to **Settings -> Identity and access -> Service principals -> Add service principal** (`gcp-lakehouse-federation-sp`) -> **Secrets -> Generate secret**. Save the Client ID (`DBX_SP_CLIENT_ID`) and Secret (`DBX_SP_CLIENT_SECRET`).
 3. **Seed Delta UniForm (`iceberg`) Tables in Databricks SQL Editor**:
-   * Open [`infra/databricks-unity/databricks_uc_setup.sql`](infra/databricks-unity/databricks_uc_setup.sql) in the Databricks SQL Editor, set `<YOUR_UNITY_CATALOG_EXTERNAL_LOCATION_URI>` to `gs://${PROJECT_ID}-dbx-uc-ext/uc-external` and `<SERVICE_PRINCIPAL_APP_ID>` to your `DBX_SP_CLIENT_ID`, and click **Run**.
+   * Open [`infra/databricks-unity/databricks_uc_setup.sql`](infra/databricks-unity/databricks_uc_setup.sql) in the Databricks SQL Editor, set `<YOUR_UNITY_CATALOG_EXTERNAL_LOCATION_URI>` to `gs://${PROJECT_ID}-dbx-uc-ext/uc-external` and `<SERVICE_PRINCIPAL_APP_ID>` to your `DBX_SP_CLIENT_ID`, and click **Run**. Confirm the trailing `DESCRIBE EXTENDED` query displays a populated Iceberg `Metadata Location`.
 4. **Federate Databricks Unity Catalog into Google Cloud Lakehouse**:
    *(Note: `setup_unity_federation.sh` automatically sets `CLOUDSDK_API_ENDPOINT_OVERRIDES_SECRETMANAGER="https://secretmanager.${GCP_REGION}.rep.googleapis.com/"`, required for Regional Secret Manager secrets, and supports both `AUTH_MODE="secret"` for quick Portal testing and 2-phase `AUTH_MODE="oidc"` + `IDENTITY_MODE="user-identity-federation"` for multi-user workspaces!)*
    ```bash
@@ -188,7 +194,7 @@ Google Cloud Lakehouse **does not support Databricks internal `default storage`*
    bash infra/databricks-unity/setup_unity_federation.sh
    ```
 
-![End-to-End User Identity Federation Flow](docs/images/identity_federation_flow.jpg)
+![End-to-end OIDC user identity federation to Databricks Unity Catalog](docs/images/identity_federation_flow.png)
 
 ---
 
@@ -217,21 +223,21 @@ Google Cloud Lakehouse supports **Intelligent Cross-Cloud Caching (GA)** across 
 
 #### 4A. Cold vs. Warm 3-Platform SQL Join in BigQuery + Cache Verification
 
-![Cross-Cloud Intelligent Caching Flow](docs/images/intelligent_cache_flow.jpg)
+![Google Cloud Lakehouse intelligent cross-cloud caching workflow](docs/images/intelligent_cache_flow.png)
 
-Run [`scripts/run_cross_cloud_join.sh`](scripts/run_cross_cloud_join.sh), which executes [`sql/02_cross_cloud_supply_chain_join.sql`](sql/02_cross_cloud_supply_chain_join.sql) **twice** with `--nouse_cache` (bypassing BigQuery's SQL result cache so you observe Lakehouse's storage-level **Intelligent Cross-Cloud Caching** on Run #2):
+Run [`scripts/run_cross_cloud_join.sh`](scripts/run_cross_cloud_join.sh), which executes [`sql/02_cross_cloud_supply_chain_join.sql`](sql/02_cross_cloud_supply_chain_join.sql) **twice** with `--nouse_cache` (bypassing BigQuery's SQL result cache so you observe Lakehouse's storage-level **Intelligent Cross-Cloud Caching** on Run #2; pass `--glue-only` if testing BigQuery + AWS Glue before configuring Databricks):
 
 ```bash
 bash scripts/run_cross_cloud_join.sh
 ```
 
-Expected 3-platform output from the 4 seeded POC orders (`ORD-8803` with `2h` delay and `0.14` risk is automatically pruned by predicate pushdown; total revenue at risk = `$72,250.00`, total gross margin exposure = **`$39,202.00`**):
+Expected 3-platform output from the 4 seeded POC orders (`ORD-8803` with `2h` delay and `0.14` risk on `NordicFreight` is automatically pruned by predicate pushdown; total revenue at risk = `$72,250.00`, total gross margin exposure = **`$39,202.00`**):
 
 | `customer_region` | `category` | `supplier_name` | `geopolitical_risk_score` | `carrier` | `delay_hours` | `affected_orders` | `gross_margin_exposure_usd` |
 | :--- | :--- | :--- | ---: | :--- | ---: | ---: | ---: |
-| `US-NORTHEAST` | `Apparel` | `Pacific Rim Textiles` | `0.69` | `MAERSK-AIR` | `19` | `1` | `24412.00` |
-| `US-NORTHEAST` | `Electronics` | `Apex MicroSystems` | `0.78` | `FEDEX-FREIGHT` | `28` | `1` | `7740.00` |
-| `US-WEST` | `Packaging` | `Great Lakes Packaging` | `0.11` | `UPS-SUPPLY` | `36` | `1` | `7050.00` |
+| `US-NORTHEAST` | `Apparel` | `Pacific Rim Textiles` | `0.69` | `PacificAirCargo` | `19` | `1` | `24412.00` |
+| `US-NORTHEAST` | `Electronics` | `Apex MicroSystems` | `0.78` | `OceanicExpress` | `28` | `1` | `7740.00` |
+| `US-WEST` | `Packaging` | `Great Lakes Packaging` | `0.11` | `GreatLakesRail` | `36` | `1` | `7050.00` |
 
 Inspect per-job cache telemetry (`cacheBytesRead` vs. `objectStorageBytesRead`) or audit fleet-wide cache savings across all workloads using [`sql/04_finops_org_cache_audit.sql`](sql/04_finops_org_cache_audit.sql):
 
@@ -255,7 +261,7 @@ ENSURE_CLOUD_NAT=true bash spark/submit_managed_spark_batch.sh
 
 ### Phase 5: Launch the Agentic Layer (`google-adk` 2.x + `gemini-3.8-flash`)
 
-![Google ADK 2.x Multi-Agent Execution & Cache Sequence](docs/images/adk_multi_agent_cache_sequence.jpg)
+![Multi-agent cross-cloud analytics and cost telemetry with Google ADK](docs/images/adk_multi_agent_cache_sequence.png)
 
 ```mermaid
 sequenceDiagram
@@ -292,7 +298,7 @@ uv run python scripts/run_agent_cli.py \
 
 ### Phase 6: Clean Up / Uninstall Everything (Avoid Ongoing Cloud Charges)
 
-When you finish testing the POC, tear down all federated catalogs, regional secrets, BigQuery connections/datasets, GCS buckets, AWS Glue tables/databases, IAM roles, and S3 buckets in one command using [`infra/teardown_all.sh`](infra/teardown_all.sh):
+When you finish testing the POC, tear down all federated catalogs, regional secrets, BigQuery connections/datasets, Cloud NAT gateways (if created), GCS buckets, AWS Glue tables/databases, IAM roles, and S3 buckets in one command using [`infra/teardown_all.sh`](infra/teardown_all.sh):
 
 ```bash
 export PROJECT_ID="your-gcp-project-id"
@@ -318,7 +324,7 @@ Finally, remove `gcp-lakehouse-federation-sp` under **Settings -> Identity and a
 
 | Symptom | Root Cause & Fix |
 | :--- | :--- |
-| **Catalog sync succeeds, but `0` tables appear from Databricks** | Verify **External data access** is ON in Unity Catalog Metastore Settings, your schema uses a registered **External Location** (not Databricks `default storage`), and your service principal has `EXTERNAL USE SCHEMA`. |
+| **Catalog sync succeeds, but `0` tables appear from Databricks** | Verify **External data access** is ON in Unity Catalog Metastore Settings, your schema uses a registered **External Location** (not Databricks `default storage`), `DESCRIBE EXTENDED` shows an Iceberg `Metadata Location`, and your service principal has `EXTERNAL USE SCHEMA`. |
 | **`cacheBytesRead` stays `0` on repeat `--nouse_cache` runs** | Confirm `--cross-cloud-cache="enabled"` on the federated catalog (or `crossCloudCacheOptions.enabled=true` on the BigQuery connection) AND check that org policy `constraints/gcp.restrictNonCmekServices` is not enforced (regional cache uses Google-managed encryption keys). |
 | **Regional Secret Manager `NOT_FOUND` or location error** | Scope `CLOUDSDK_API_ENDPOINT_OVERRIDES_SECRETMANAGER="https://secretmanager.${GCP_REGION}.rep.googleapis.com/"` when creating regional secrets (handled automatically in `setup_unity_federation.sh`). |
 | **`gcloud biglake` AWS Glue creation fails on `--glue-warehouse`** | Pass only the **12-digit AWS Account ID** (e.g., `123456789012`) or `<ACCOUNT_ID>:s3tablescatalog/<BUCKET>`, never an `s3://` URI. |

@@ -12,8 +12,13 @@ SELECT
 FROM
   system.access.audit
 WHERE
-  service_name = 'accounts'
-  AND action_name IN ('oidcTokenAuthorization')
+  (
+    (service_name = 'accounts' AND action_name = 'oidcTokenAuthorization')
+    OR (
+      service_name = 'unityCatalog'
+      AND action_name IN ('getTable', 'generateTemporaryTableCredential')
+    )
+  )
   AND event_time >= NOW() - INTERVAL 60 MINUTE
 ORDER BY
   event_time DESC

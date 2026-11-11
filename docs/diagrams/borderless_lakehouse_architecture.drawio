@@ -76,7 +76,7 @@
           <mxGeometry x="1175" y="200" width="330" height="125" as="geometry" />
         </mxCell>
 
-        <mxCell id="spark" value="Managed Service for Apache Spark&#xa;Iceberg REST Catalog (bl:// warehouse)&#xa;X-Iceberg-Access-Delegation=vended-credentials" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#1967D2;fontSize=12;fontStyle=1;fontColor=#174EA6;" vertex="1" parent="1">
+        <mxCell id="spark" value="Managed Service for Apache Spark 2.3&#xa;bl://projects/&lt;PROJECT&gt;/catalogs/&lt;CATALOG&gt;&#xa;X-Iceberg-Access-Delegation=vended-credentials" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#1967D2;fontSize=12;fontStyle=1;fontColor=#174EA6;" vertex="1" parent="1">
           <mxGeometry x="1175" y="365" width="330" height="125" as="geometry" />
         </mxCell>
 

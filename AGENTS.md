@@ -10,43 +10,43 @@ Use this file as the source of truth when modifying agents, SQL/Spark workloads,
 
 ## 1. System Topology & Agent Roles
 
-`src/lakehouse_agent/agent.py` exports `root_agent` so the project runs out-of-the-box with `adk web src` and `adk run src/lakehouse_agent`:
+`src/lakehouse_agent/agent.py` exports `root_agent` (lazily initialized via `__getattr__` in `src/lakehouse_agent/__init__.py` so env overrides can be set prior to agent instantiation) and runs out-of-the-box with `adk web src`, `adk run src/lakehouse_agent`, and `scripts/run_agent_cli.py`:
 
 ```text
-lakehouse_practitioner_copilot (Root Orchestrator — gemini-3.8-flash)
-├── cross_cloud_supply_chain_analyst (Sub-Agent — gemini-3.8-flash)
-│   └── BigQueryToolset (WriteMode.BLOCKED, max_bytes_billed cap, 4-part federated SQL)
-└── finops_cache_telemetry_advisor (Sub-Agent — gemini-3.8-flash)
-    ├── inspect_bigquery_job_cache_stats (parses statistics.query.objectStorageStats)
-    ├── simulate_agentic_burst_finops (models multi-turn agent cache ROI)
-    └── get_federated_catalog_cli_blueprint (emits verified GA gcloud commands)
+lakehouse_practitioner_copilot (Root Orchestrator — gemini-3.8-flash, ThinkingLevel.LOW)
+├── cross_cloud_supply_chain_analyst (Sub-Agent — gemini-3.8-flash, ThinkingLevel.MEDIUM)
+│   ├── discover_federated_tables (BigLake Iceberg REST API 4-part schema & snapshot discovery)
+│   └── BigQueryToolset (WriteMode.BLOCKED, BIGQUERY_ALLOWED_TOOLS filter, execute_sql + forecast)
+└── finops_cache_telemetry_advisor (Sub-Agent — gemini-3.8-flash, ThinkingLevel.MEDIUM)
+    ├── inspect_bigquery_job_cache_stats (supports job_id="LATEST" via workload label lookup)
+    ├── simulate_agentic_burst_finops (models multi-turn agent cache ROI & avoided egress)
+    └── get_federated_catalog_cli_blueprint (emits verified GA gcloud & bq connection commands)
 ```
 
 ---
 
 ## 2. Technical Invariants (Do Not Violate)
 
-1. **Google ADK 2.x Integration Path**:
-   - Always import `BigQueryToolset` and `BigQueryCredentialsConfig` from `google.adk.integrations.bigquery` (and `BigQueryToolConfig`, `WriteMode` from `google.adk.integrations.bigquery.config`).
-   - **Never** import from `google.adk.tools.bigquery` — that module path is deprecated in `google-adk >= 2.x`.
-   - When Application Default Credentials (ADC) are absent in unit tests or CI, pass `credentials_config=None` to `BigQueryToolset` rather than instantiating an empty `BigQueryCredentialsConfig()`.
+1. **Google ADK 2.x Integration & `tool_filter` Guardrails**:
+   - Always import `BigQueryToolset` and `BigQueryCredentialsConfig` from `google.adk.integrations.bigquery` (and `BigQueryToolConfig`, `WriteMode` from `google.adk.integrations.bigquery.config`). **Never** import from deprecated `google.adk.tools.bigquery`.
+   - Keep `tool_filter=list(BIGQUERY_ALLOWED_TOOLS)` on `BigQueryToolset` (`execute_sql`, `forecast`, `list_dataset_ids`, `get_dataset_info`, `list_table_ids`, `get_table_info`, `get_job_info`). Do **not** expose `search_catalog` (requires optional `google-cloud-dataplex`) or `analyze_contribution` / `detect_anomalies` (raise `ValueError` under `WriteMode.BLOCKED` because they execute `CREATE TEMP MODEL`).
+   - When Application Default Credentials (ADC) are absent in unit tests or CI, pass `credentials_config=None` to `BigQueryToolset` rather than an empty `BigQueryCredentialsConfig()`.
 
-2. **Standalone Databricks Platform vs. AWS Cloud**:
-   - Treat **Databricks Unity Catalog** (accessed via its own standalone **Databricks Portal / Free Edition / Community Edition**) and **AWS Glue Data Catalog** (on **AWS S3**) as **two separate, independent external platforms** federated into Google Cloud (`us-east4`). Do **not** assume or hardcode Databricks inside AWS.
-   - Google Cloud Lakehouse **does not support Databricks internal `default storage`**. Every Unity Catalog schema/table federated to Lakehouse must use a registered **Unity Catalog External Location** (see `infra/databricks-unity/README.md`), have **External data access** enabled on the metastore, and grant `EXTERNAL USE SCHEMA` to the service principal.
+2. **Federated Schema Discovery & `job_id="LATEST"` Telemetry**:
+   - Standard `BigQueryToolset` catalog tools (`list_dataset_ids`) only enumerate 3-part native datasets and cannot list 4-part federated catalogs. Keep `discover_federated_tables` (`src/lakehouse_agent/catalog_discovery.py`) wired on the analyst agent so it can inspect namespaces, column schemas, and Iceberg snapshot IDs via `https://biglake.googleapis.com/iceberg/v1/restcatalog`.
+   - Because `BigQueryToolset.execute_sql` returns rows without exposing the BigQuery `job_id`, `BigQueryToolConfig` tags queries with `job_labels={"workload": "borderless-lakehouse-adk", "component": "adk-copilot"}`, and `inspect_bigquery_job_cache_stats(job_id="LATEST")` automatically resolves the latest matching completed query job in `BQ_LOCATION`.
 
-3. **4-Part Federated Table Identifiers**:
-   - Native BigQuery tables use 3-part names: `` `project.dataset.table` ``.
-   - Federated Iceberg tables (Databricks Unity Catalog & AWS Glue) **must** use backticked 4-part names: `` `project.federated_catalog.namespace.table` ``.
-   - Instruct SQL agents to project explicit columns and push down `WHERE` predicates (never `SELECT *`) so Lakehouse Intelligent Caching stores only required Parquet column blocks.
+3. **Decoupled Vertex AI vs. BigQuery Locations**:
+   - Preview/latest Gemini models on Vertex AI (`GOOGLE_GENAI_USE_VERTEXAI=TRUE`) require `GOOGLE_CLOUD_LOCATION=global`, whereas BigQuery datasets and Lakehouse regional caches live in `BQ_LOCATION` / `GCP_REGION` (`us-east4`). Keep these decoupled in `LakehouseSettings` (`src/lakehouse_agent/config.py`).
 
-4. **Read-Only Guardrails & User Identity Propagation**:
-   - Keep `WriteMode.BLOCKED` and `maximum_bytes_billed` enforced on `BigQueryToolConfig` (cross-cloud federated catalogs are read-only in GA).
-   - Preserve the `user_access_token` path in `build_bigquery_toolset()` so end-user OAuth credentials can flow through BigQuery into Databricks Unity Catalog when `--federated-catalog-identity-mode="user-identity-federation"` is enabled.
+4. **Standalone Databricks Platform vs. AWS Cloud**:
+   - Treat **Databricks Unity Catalog** (accessed via its own standalone **Databricks Portal — Free / Community Edition** or workspace) and **AWS Glue Data Catalog** (on **AWS S3** or **S3 Table Buckets**) as **two separate, independent external platforms** federated into Google Cloud (`us-east4`). Never model Databricks inside AWS.
+   - Google Cloud Lakehouse **does not support Databricks internal `default storage`**. Federated Unity Catalog schemas must use a registered **External Location**, have **External data access** enabled on the metastore, and grant `EXTERNAL USE SCHEMA`.
+   - Regional Secret Manager secrets require scoping `CLOUDSDK_API_ENDPOINT_OVERRIDES_SECRETMANAGER="https://secretmanager.${GCP_REGION}.rep.googleapis.com/"`.
 
-5. **Intelligent Cross-Cloud Caching Telemetry**:
-   - Cross-cloud caching (`--cross-cloud-cache="enabled"`) is **disabled by default** in GA and must be explicitly enabled.
-   - Verify cache hits via BigQuery job statistics `statistics.query.objectStorageStats` (`cacheBytesRead` vs. `objectStorageBytesRead`). If `cacheBytesRead` remains `0` on warm runs, check both `--cross-cloud-cache="enabled"` and org policy `constraints/gcp.restrictNonCmekServices`.
+5. **4-Part SQL Identifiers & Spark Iceberg REST Properties**:
+   - Native BigQuery tables use 3-part names (`` `project.dataset.table` ``); federated Iceberg tables use 4-part names (`` `project.federated_catalog.namespace.table` ``). Always project explicit columns and push down `WHERE` predicates.
+   - In Apache Spark (`spark/cross_cloud_margin_risk_job.py`), use `uri = https://biglake.googleapis.com/iceberg/v1/restcatalog` (no `/ext`), `warehouse = bl://projects/<PROJECT>/catalogs/<CATALOG>`, and `rest.auth.type = org.apache.iceberg.gcp.auth.GoogleAuthManager`. Note that Intelligent Cross-Cloud Caching accelerates **BigQuery** queries; Spark executors read directly from remote storage via short-lived vended credentials.
 
 ---
 
@@ -54,24 +54,23 @@ lakehouse_practitioner_copilot (Root Orchestrator — gemini-3.8-flash)
 
 ```bash
 # Install dependencies (Python 3.11+ via uv)
-uv sync --extra dev
+make install          # or: uv sync --extra dev
 
-# Run unit test suite (verifies ADK 2.x wiring, zero deprecation warnings, and FinOps parser)
-uv run pytest -v
+# Run full validation suite (pytest + shell syntax + XML/SVG diagram validation)
+make test
+
+# Run environment & cloud readiness diagnostics (exits 0 locally even without cloud auth)
+make doctor           # or: uv run python scripts/preflight_doctor.py
 
 # Run offline Cold vs. Warm Intelligent Cache & Agentic FinOps benchmark demo
-uv run python scripts/demo_agent_cache_finops.py
+make demo-finops      # or: uv run python scripts/demo_agent_cache_finops.py
 
-# Inspect a live BigQuery cross-cloud job's cache hit ratio
-uv run python scripts/demo_agent_cache_finops.py --live-job-id <BQ_JOB_ID> --location us-east4
+# Inspect multi-agent ADK topology & tool wiring offline (or pass --prompt "..." with API key)
+make inspect-agent    # or: uv run python scripts/run_agent_cli.py --inspect-topology
 
 # Launch interactive Google ADK Dev UI
-uv run adk web src
-
-# Validate shell scripts and XML/SVG diagrams
-for f in infra/*.sh infra/*/*.sh spark/*.sh scripts/*.sh; do bash -n "$f"; done
-uv run python -c "import xml.etree.ElementTree as ET; ET.parse('docs/diagrams/borderless_lakehouse_architecture.drawio'); ET.parse('docs/diagrams/borderless_lakehouse_architecture.svg')"
+make adk-web          # or: uv run adk web src
 
 # Uninstall / tear down all POC cloud resources when finished testing
-bash infra/teardown_all.sh
+make teardown         # or: bash infra/teardown_all.sh
 ```

@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="720" viewBox="0 0 1600 720">
+  
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#CBD5E1" fill-opacity="0.55"/>
+    </pattern>
+    <filter id="shadow" x="-6%" y="-6%" width="112%" height="118%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#1A73E8"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16A34A"/>
+    </marker>
+    <marker id="arrOrange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#EA580C"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#E11D48"/>
+    </marker>
+    <marker id="arrPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="arrSlate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="720" fill="#F8FAFC"/>
+  <rect width="1600" height="720" fill="url(#grid)"/>
+
+  <rect x="36" y="24" width="1528" height="72" rx="14" fill="#0F172A" filter="url(#shadow)"/>
+  <text x="64" y="55" font-family="DejaVu Sans" font-size="23" font-weight="bold" fill="#FFFFFF">End-to-End OIDC User Identity Federation — Google Cloud Lakehouse to Databricks Unity Catalog</text>
+  <text x="64" y="79" font-family="DejaVu Sans" font-size="14" fill="#94A3B8">--federated-catalog-identity-mode="user-identity-federation" · Per-user row/column governance &amp; system.access.audit lineage</text>
+
+  <!-- Stage 1 -->
+  <g filter="url(#shadow)">
+    <rect x="36" y="132" width="310" height="440" rx="16" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2.2"/>
+    <rect x="36" y="132" width="310" height="46" rx="14" fill="#F3E8FF"/>
+    <text x="58" y="161" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#5B21B6">1. Authenticated Analyst</text>
+
+    <rect x="60" y="206" width="262" height="96" rx="10" fill="#F5F3FF" stroke="#C4B5FD"/>
+    <text x="191" y="238" text-anchor="middle" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#4C1D95">alice@company.com</text>
+    <text x="191" y="262" text-anchor="middle" font-family="DejaVu Sans" font-size="12.5" fill="#475569">BigQuery Studio or Google ADK</text>
+    <text x="191" y="282" text-anchor="middle" font-family="DejaVu Sans Mono" font-size="11.5" fill="#6D28D9">BigQueryCredentialsConfig(OAuth)</text>
+
+    <rect x="60" y="330" width="262" height="106" rx="10" fill="#FFFFFF" stroke="#E2E8F0"/>
+    <text x="78" y="358" font-family="DejaVu Sans" font-size="13.5" font-weight="bold" fill="#1E293B">4-Part Federated SQL</text>
+    <text x="78" y="382" font-family="DejaVu Sans Mono" font-size="11.5" fill="#1D4ED8">SELECT * FROM</text>
+    <text x="78" y="401" font-family="DejaVu Sans Mono" font-size="11.5" fill="#1D4ED8">`proj.dbx_unity_merch.</text>
+    <text x="78" y="420" font-family="DejaVu Sans Mono" font-size="11.5" fill="#1D4ED8"> supply_chain.sku_margins`</text>
+
+    <rect x="60" y="462" width="262" height="84" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="78" y="490" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#334155">Google Cloud IAM Check</text>
+    <text x="78" y="512" font-family="DejaVu Sans" font-size="12" fill="#475569">Verifies BigQuery Job User &amp;</text>
+    <text x="78" y="530" font-family="DejaVu Sans" font-size="12" fill="#475569">BigLake Table Reader roles</text>
+  </g>
+
+  <!-- Stage 2 -->
+  <g filter="url(#shadow)">
+    <rect x="406" y="132" width="420" height="440" rx="16" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.2"/>
+    <rect x="406" y="132" width="420" height="46" rx="14" fill="#DBEAFE"/>
+    <text x="428" y="161" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#1E40AF">2. Google Cloud Lakehouse (us-east4)</text>
+
+    <rect x="430" y="206" width="372" height="164" rx="10" fill="#EFF6FF" stroke="#60A5FA"/>
+    <text x="448" y="234" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#1E3A8A">Mint Scoped End-User OIDC JWT</text>
+    <text x="448" y="260" font-family="DejaVu Sans Mono" font-size="11.5" fill="#1D4ED8">iss: https://www.gstatic.com/biglake/</text>
+    <text x="448" y="278" font-family="DejaVu Sans Mono" font-size="11.5" fill="#1D4ED8">     federation/organizations/&lt;ORG_ID&gt;</text>
+    <text x="448" y="302" font-family="DejaVu Sans Mono" font-size="11.5" fill="#047857">aud: databricks-&lt;METASTORE_ID&gt;</text>
+    <text x="448" y="326" font-family="DejaVu Sans Mono" font-size="11.5" fill="#6D28D9">sub: alice@company.com</text>
+    <text x="448" y="350" font-family="DejaVu Sans" font-size="11.5" fill="#475569">(Signed by Google Cloud Federation IdP)</text>
+
+    <rect x="430" y="396" width="372" height="150" rx="10" fill="#ECFDF5" stroke="#34D399"/>
+    <text x="448" y="424" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#065F46">Lakehouse Catalog + Regional Cache</text>
+    <text x="448" y="450" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Background metadata sync uses catalog SP</text>
+    <text x="448" y="472" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Interactive query propagates Alice's JWT</text>
+    <text x="448" y="494" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Serves cached Parquet blocks ONLY after</text>
+    <text x="448" y="514" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#065F46">  Unity Catalog authorizes Alice!</text>
+  </g>
+
+  <!-- Stage 3: Transport -->
+  <g filter="url(#shadow)">
+    <rect x="886" y="242" width="184" height="220" rx="14" fill="#EFF6FF" stroke="#3B82F6" stroke-width="2"/>
+    <text x="978" y="278" text-anchor="middle" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#1E40AF">Encrypted</text>
+    <text x="978" y="299" text-anchor="middle" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#1E40AF">Transport</text>
+    <line x1="908" y1="316" x2="1048" y2="316" stroke="#BFDBFE" stroke-width="1.5"/>
+    <text x="978" y="348" text-anchor="middle" font-family="DejaVu Sans" font-size="13" font-weight="bold" fill="#1E293B">TLS 1.3 HTTPS</text>
+    <text x="978" y="370" text-anchor="middle" font-family="DejaVu Sans" font-size="11.5" fill="#475569">(Standalone Portal)</text>
+    <text x="978" y="404" text-anchor="middle" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#0F766E">or Private CCI</text>
+    <text x="978" y="424" text-anchor="middle" font-family="DejaVu Sans" font-size="11.5" fill="#475569">(Enterprise VPC)</text>
+  </g>
+
+  <!-- Stage 4: Databricks Unity Catalog -->
+  <g filter="url(#shadow)">
+    <rect x="1130" y="132" width="434" height="440" rx="16" fill="#FFFFFF" stroke="#E11D48" stroke-width="2.2"/>
+    <rect x="1130" y="132" width="434" height="46" rx="14" fill="#FFE4E6"/>
+    <text x="1152" y="161" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#BE123C">3. Standalone Databricks Unity Catalog</text>
+
+    <rect x="1154" y="206" width="386" height="106" rx="10" fill="#FFF1F2" stroke="#FDA4AF"/>
+    <text x="1172" y="233" font-family="DejaVu Sans" font-size="14.5" font-weight="bold" fill="#9F1239">Account-Wide OIDC Policy Validation</text>
+    <text x="1172" y="257" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Verifies Google issuer &amp; metastore audience</text>
+    <text x="1172" y="279" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Maps alice@company.com -&gt; group</text>
+    <text x="1172" y="298" font-family="DejaVu Sans Mono" font-size="12" font-weight="bold" fill="#BE123C">  `supply_chain_analysts`</text>
+
+    <rect x="1154" y="332" width="386" height="104" rx="10" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="1172" y="359" font-family="DejaVu Sans" font-size="14.5" font-weight="bold" fill="#1E293B">Fine-Grained Policy &amp; Token Vending</text>
+    <text x="1172" y="383" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Evaluates USE CATALOG, SELECT &amp; Row/Col ACLs</text>
+    <text x="1172" y="405" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Checks EXTERNAL USE SCHEMA privilege</text>
+    <text x="1172" y="425" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#047857">• Vends short-lived downscoped storage token</text>
+
+    <rect x="1154" y="454" width="386" height="94" rx="10" fill="#0F172A"/>
+    <text x="1172" y="480" font-family="DejaVu Sans" font-size="13.5" font-weight="bold" fill="#F8FAFC">Databricks Audit Table: system.access.audit</text>
+    <text x="1172" y="504" font-family="DejaVu Sans Mono" font-size="11.5" fill="#4ADE80">action: oidcTokenAuthorization</text>
+    <text x="1172" y="523" font-family="DejaVu Sans Mono" font-size="11.5" fill="#38BDF8">action: generateTemporaryTableCredential</text>
+    <text x="1172" y="541" font-family="DejaVu Sans Mono" font-size="11.5" fill="#FBBF24">user_identity.email = "alice@company.com"</text>
+  </g>
+
+  <!-- Stage Arrows -->
+  <line x1="346" y1="260" x2="406" y2="260" stroke="#7C3AED" stroke-width="2.8" marker-end="url(#arrPurple)"/>
+  <line x1="826" y1="300" x2="886" y2="300" stroke="#1A73E8" stroke-width="2.8" marker-end="url(#arrBlue)"/>
+  <line x1="1070" y1="300" x2="1130" y2="300" stroke="#E11D48" stroke-width="2.8" marker-end="url(#arrRed)"/>
+  <!-- Return Vended Credential Arrow -->
+  <line x1="1130" y1="410" x2="1070" y2="410" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+  <line x1="886" y1="410" x2="826" y2="410" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+
+  <!-- Footer Note -->
+  <rect x="36" y="602" width="1528" height="88" rx="14" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1.5"/>
+  <text x="64" y="634" font-family="DejaVu Sans" font-size="14.5" font-weight="bold" fill="#1E3A8A">Practitioner Setup Note (Portal Quickstart vs. Enterprise OIDC):</text>
+  <text x="64" y="658" font-family="DejaVu Sans" font-size="13" fill="#334155">• Standalone Free/Community Portal single-user testing: use AUTH_MODE="secret" + IDENTITY_MODE="service-identity" (zero account-console OIDC setup needed).</text>
+  <text x="64" y="679" font-family="DejaVu Sans" font-size="13" fill="#334155">• Multi-user workspaces: set IDENTITY_MODE="user-identity-federation" and register issuer-url &amp; audience via `databricks account federation-policy create`.</text>
+</svg>

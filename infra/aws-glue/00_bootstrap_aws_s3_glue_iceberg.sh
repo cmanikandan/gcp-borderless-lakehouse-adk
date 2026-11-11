@@ -102,13 +102,27 @@ TBLPROPERTIES (
 )"
 run_athena_sql "${CREATE_TBL_SQL}" "CREATE_ICEBERG_TABLE"
 
-echo "==> [4/4] Seeding sample shipment delay events into '${GLUE_DATABASE}.shipment_events'..."
-INSERT_SQL="INSERT INTO ${GLUE_DATABASE}.shipment_events VALUES
-  ('SHP-5001', 'ORD-8801', 'SKU-9001', 'OceanicExpress', 'KAOHSIUNG', 'PORT_CONGESTION_HOLD', 28, current_timestamp),
-  ('SHP-5002', 'ORD-8802', 'SKU-9003', 'PacificAirCargo', 'HO_CHI_MINH', 'CUSTOMS_INSPECTION_DELAY', 19, current_timestamp),
-  ('SHP-5003', 'ORD-8803', 'SKU-9002', 'NordicFreight', 'GOTHENBURG', 'IN_TRANSIT_ON_TIME', 2, current_timestamp),
-  ('SHP-5004', 'ORD-8804', 'SKU-9004', 'GreatLakesRail', 'CHICAGO', 'WEATHER_REROUTE_DELAY', 36, current_timestamp)"
-run_athena_sql "${INSERT_SQL}" "SEED_SHIPMENT_EVENTS"
+echo "==> [4/4] Upserting sample shipment delay events into '${GLUE_DATABASE}.shipment_events' (idempotent MERGE)..."
+MERGE_SQL="MERGE INTO ${GLUE_DATABASE}.shipment_events AS target
+USING (
+  VALUES
+    ('SHP-5001', 'ORD-8801', 'SKU-9001', 'OceanicExpress', 'KAOHSIUNG', 'PORT_CONGESTION_HOLD', 28, current_timestamp),
+    ('SHP-5002', 'ORD-8802', 'SKU-9003', 'PacificAirCargo', 'HO_CHI_MINH', 'CUSTOMS_INSPECTION_DELAY', 19, current_timestamp),
+    ('SHP-5003', 'ORD-8803', 'SKU-9002', 'NordicFreight', 'GOTHENBURG', 'IN_TRANSIT_ON_TIME', 2, current_timestamp),
+    ('SHP-5004', 'ORD-8804', 'SKU-9004', 'GreatLakesRail', 'CHICAGO', 'WEATHER_REROUTE_DELAY', 36, current_timestamp)
+) AS source (event_id, order_id, sku_id, carrier, origin_port, shipment_status, delay_hours, event_ts)
+ON target.event_id = source.event_id
+WHEN MATCHED THEN UPDATE SET
+  shipment_status = source.shipment_status,
+  delay_hours = source.delay_hours,
+  event_ts = source.event_ts
+WHEN NOT MATCHED THEN INSERT (
+  event_id, order_id, sku_id, carrier, origin_port, shipment_status, delay_hours, event_ts
+) VALUES (
+  source.event_id, source.order_id, source.sku_id, source.carrier, source.origin_port,
+  source.shipment_status, source.delay_hours, source.event_ts
+)"
+run_athena_sql "${MERGE_SQL}" "SEED_SHIPMENT_EVENTS"
 
 echo ""
 echo "SUCCESS: AWS S3 bucket '${S3_ICEBERG_BUCKET}' and Glue Iceberg table '${GLUE_DATABASE}.shipment_events' are ready!"

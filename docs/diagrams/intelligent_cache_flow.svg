@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="860" viewBox="0 0 1600 860">
+  
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#CBD5E1" fill-opacity="0.55"/>
+    </pattern>
+    <filter id="shadow" x="-6%" y="-6%" width="112%" height="118%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#1A73E8"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16A34A"/>
+    </marker>
+    <marker id="arrOrange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#EA580C"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#E11D48"/>
+    </marker>
+    <marker id="arrPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="arrSlate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="860" fill="#F8FAFC"/>
+  <rect width="1600" height="860" fill="url(#grid)"/>
+
+  <rect x="36" y="24" width="1528" height="72" rx="14" fill="#0F172A" filter="url(#shadow)"/>
+  <text x="64" y="55" font-family="DejaVu Sans" font-size="23" font-weight="bold" fill="#FFFFFF">Google Cloud Lakehouse Intelligent Caching (GA) — Cold Scan vs. Warm Agentic Burst</text>
+  <text x="64" y="79" font-family="DejaVu Sans" font-size="14" fill="#94A3B8">Block-level regional Parquet caching in us-east4 · $0 extra Google Cloud cache fee · Verified via statistics.query.objectStorageStats</text>
+
+  <!-- Panel 1: Cold Scan -->
+  <g filter="url(#shadow)">
+    <rect x="36" y="120" width="744" height="590" rx="16" fill="#FFFFFF" stroke="#F59E0B" stroke-width="2.2"/>
+    <rect x="36" y="120" width="744" height="50" rx="14" fill="#FEF3C7"/>
+    <text x="62" y="152" font-family="DejaVu Sans" font-size="18" font-weight="bold" fill="#B45309">1. Query #1 — Initial Cold Scan (Cache Miss -&gt; Populate)</text>
+
+    <rect x="68" y="200" width="680" height="92" rx="12" fill="#EFF6FF" stroke="#2563EB" stroke-width="1.8"/>
+    <text x="92" y="232" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#1E3A8A">BigQuery Engine (us-east4) — Column &amp; Predicate Pushdown</text>
+    <text x="92" y="256" font-family="DejaVu Sans" font-size="13" fill="#334155">Requests only projected columns (order_id, sku_id, delay_hours) for last 7 days</text>
+    <text x="92" y="276" font-family="DejaVu Sans Mono" font-size="12" fill="#1D4ED8">bq query --nouse_cache &lt; 02_cross_cloud_supply_chain_join.sql</text>
+
+    <rect x="68" y="346" width="680" height="110" rx="12" fill="#ECFDF5" stroke="#10B981" stroke-width="1.8" stroke-dasharray="7,5"/>
+    <text x="92" y="378" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#065F46">Google Cloud Regional Block Cache (us-east4 · GMEK Encrypted)</text>
+    <text x="92" y="402" font-family="DejaVu Sans" font-size="13" fill="#334155">• Cold Miss: Fetches required Parquet row-groups/columns via vended STS token</text>
+    <text x="92" y="424" font-family="DejaVu Sans" font-size="13" fill="#334155">• Hydrates regional block cache automatically on read-through return path</text>
+    <text x="92" y="444" font-family="DejaVu Sans Mono" font-size="12" fill="#B45309">cacheBytesRead: 0 B | objectStorageBytesRead: 48.0 GB (Cold Benchmark)</text>
+
+    <rect x="68" y="510" width="680" height="106" rx="12" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.8"/>
+    <text x="92" y="542" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#92400E">Remote Storage: AWS S3 (us-east-1) &amp; Databricks UC External Location</text>
+    <text x="92" y="566" font-family="DejaVu Sans" font-size="13" fill="#334155">Streams projected Iceberg Parquet blocks once over TLS 1.3 or Cross-Cloud Interconnect</text>
+    <text x="92" y="589" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#B45309">1x Cross-Cloud Egress Incurred on Unseen Snapshot Blocks</text>
+
+    <rect x="68" y="636" width="680" height="52" rx="10" fill="#FFF7ED" stroke="#FDBA74"/>
+    <text x="408" y="667" text-anchor="middle" font-family="DejaVu Sans" font-size="14" font-weight="bold" fill="#9A3412">Result: Regional Cache Armed for Subsequent BI &amp; Multi-Agent Queries</text>
+
+    <!-- Bidirectional Read-Through Arrows -->
+    <line x1="290" y1="292" x2="290" y2="346" stroke="#2563EB" stroke-width="2.5" marker-end="url(#arrBlue)"/>
+    <line x1="520" y1="346" x2="520" y2="292" stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrGreen)"/>
+    <line x1="290" y1="456" x2="290" y2="510" stroke="#EA580C" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arrOrange)"/>
+    <line x1="520" y1="510" x2="520" y2="456" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+    <text x="534" y="488" font-family="DejaVu Sans" font-size="12" font-weight="bold" fill="#065F46">Hydrate Blocks</text>
+  </g>
+
+  <!-- Panel 2: Warm Agentic Burst -->
+  <g filter="url(#shadow)">
+    <rect x="820" y="120" width="744" height="590" rx="16" fill="#FFFFFF" stroke="#16A34A" stroke-width="2.5"/>
+    <rect x="820" y="120" width="744" height="50" rx="14" fill="#DCFCE7"/>
+    <text x="846" y="152" font-family="DejaVu Sans" font-size="18" font-weight="bold" fill="#166534">2. Agent Queries #2–#6 — Warm Iterative Loop ($0 Repeat Egress)</text>
+
+    <rect x="852" y="200" width="680" height="92" rx="12" fill="#F5F3FF" stroke="#7C3AED" stroke-width="1.8"/>
+    <text x="876" y="232" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#5B21B6">Google ADK Copilot (gemini-3.8-flash) -&gt; BigQuery (us-east4)</text>
+    <text x="876" y="256" font-family="DejaVu Sans" font-size="13" fill="#334155">Fires 5 rapid follow-up SQL drill-downs (#2–#6) exploring SKUs, margins &amp; delays</text>
+    <text x="876" y="276" font-family="DejaVu Sans Mono" font-size="12" fill="#6D28D9">Even with --nouse_cache, storage blocks serve from Regional Cache!</text>
+
+    <rect x="852" y="346" width="680" height="122" rx="12" fill="#DCFCE7" stroke="#16A34A" stroke-width="2.4"/>
+    <text x="876" y="378" font-family="DejaVu Sans" font-size="16" font-weight="bold" fill="#065F46">Google Cloud Regional Block Cache — 96.25% Local Hit!</text>
+    <text x="876" y="402" font-family="DejaVu Sans" font-size="13" fill="#1E293B">• Lightweight metadata &amp; ACL verification ensures zero stale snapshot reads</text>
+    <text x="876" y="424" font-family="DejaVu Sans" font-size="13" fill="#1E293B">• Serves 46.2 GB locally at Google Cloud speed; fetches only 1.8 GB new delta</text>
+    <text x="876" y="450" font-family="DejaVu Sans Mono" font-size="12.5" font-weight="bold" fill="#15803D">cacheBytesRead: 46.2 GB | objectStorageBytesRead: 1.8 GB</text>
+
+    <rect x="852" y="520" width="680" height="96" rx="12" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5,5"/>
+    <text x="876" y="552" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#64748B">Remote AWS S3 / External Bucket — Bulk Data Transfer Bypassed</text>
+    <text x="876" y="576" font-family="DejaVu Sans" font-size="13" fill="#64748B">Only lightweight Iceberg snapshot/ACL check + any newly committed delta files</text>
+    <text x="876" y="598" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#15803D">$0 Repeat Egress on Cached Blocks · ~92% Monthly Agentic Egress Reduction</text>
+
+    <rect x="852" y="636" width="680" height="52" rx="10" fill="#DCFCE7" stroke="#4ADE80"/>
+    <text x="1192" y="667" text-anchor="middle" font-family="DejaVu Sans" font-size="14" font-weight="bold" fill="#166534">40 Daily Agent Runs: $31,104/mo Uncached -&gt; $2,488/mo Cached ($553/mo w/ CCI)</text>
+
+    <!-- 5 Rapid Green Arrows -->
+    <line x1="1040" y1="292" x2="1040" y2="346" stroke="#16A34A" stroke-width="3" marker-end="url(#arrGreen)"/>
+    <line x1="1120" y1="346" x2="1120" y2="292" stroke="#16A34A" stroke-width="3" marker-end="url(#arrGreen)"/>
+    <line x1="1200" y1="292" x2="1200" y2="346" stroke="#16A34A" stroke-width="3" marker-end="url(#arrGreen)"/>
+    <line x1="1280" y1="346" x2="1280" y2="292" stroke="#16A34A" stroke-width="3" marker-end="url(#arrGreen)"/>
+    <text x="1302" y="324" font-family="DejaVu Sans" font-size="12.5" font-weight="bold" fill="#15803D">5 Warm Queries (#2–#6)</text>
+    <line x1="1192" y1="468" x2="1192" y2="520" stroke="#64748B" stroke-width="1.8" stroke-dasharray="4,4" marker-end="url(#arrSlate)"/>
+    <text x="1206" y="499" font-family="DejaVu Sans" font-size="11.5" fill="#475569">Metadata/ACL Check Only</text>
+  </g>
+
+  <!-- Bottom Two-Surface Banner -->
+  <rect x="36" y="734" width="1528" height="98" rx="14" fill="#0F172A" filter="url(#shadow)"/>
+  <text x="64" y="766" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#4ADE80">Two GA Ways to Opt In (Disabled by Default):</text>
+  <text x="64" y="792" font-family="DejaVu Sans Mono" font-size="12.5" fill="#E2E8F0">1) Federated Catalog  : gcloud biglake iceberg catalogs create/update &lt;CAT&gt; --cross-cloud-cache="enabled"</text>
+  <text x="64" y="815" font-family="DejaVu Sans Mono" font-size="12.5" fill="#E2E8F0">2) BigQuery Connection: bq mk --connection --connection_type='AWS' --location=us-east4 --properties='{"crossCloudCacheOptions":{"enabled":true}}'</text>
+</svg>

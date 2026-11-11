@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="820" viewBox="0 0 1600 820">
+  
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#CBD5E1" fill-opacity="0.55"/>
+    </pattern>
+    <filter id="shadow" x="-6%" y="-6%" width="112%" height="118%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#1A73E8"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#16A34A"/>
+    </marker>
+    <marker id="arrOrange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#EA580C"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#E11D48"/>
+    </marker>
+    <marker id="arrPurple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#7C3AED"/>
+    </marker>
+    <marker id="arrSlate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569"/>
+    </marker>
+  </defs>
+
+  <rect width="1600" height="820" fill="#F8FAFC"/>
+  <rect width="1600" height="820" fill="url(#grid)"/>
+
+  <rect x="36" y="24" width="1528" height="72" rx="14" fill="#0F172A" filter="url(#shadow)"/>
+  <text x="64" y="55" font-family="DejaVu Sans" font-size="23" font-weight="bold" fill="#FFFFFF">Google ADK 2.x (gemini-3.8-flash) — Multi-Agent Cross-Cloud Execution &amp; FinOps Loop</text>
+  <text x="64" y="79" font-family="DejaVu Sans" font-size="14" fill="#94A3B8">BuiltInPlanner ThinkingLevel routing · Custom Iceberg REST schema discovery · Read-only BigQueryToolset · Automatic LATEST job cache audit</text>
+
+  <!-- Left: Practitioner Prompt & Root Orchestrator -->
+  <g filter="url(#shadow)">
+    <rect x="36" y="128" width="360" height="652" rx="16" fill="#FFFFFF" stroke="#7C3AED" stroke-width="2.4"/>
+    <rect x="36" y="128" width="360" height="46" rx="14" fill="#F3E8FF"/>
+    <text x="58" y="158" font-family="DejaVu Sans" font-size="16.5" font-weight="bold" fill="#5B21B6">1. User &amp; Root Orchestrator</text>
+
+    <rect x="60" y="198" width="312" height="120" rx="10" fill="#F8FAFC" stroke="#CBD5E1"/>
+    <text x="78" y="225" font-family="DejaVu Sans" font-size="14" font-weight="bold" fill="#1E293B">Cloud Practitioner Prompt</text>
+    <text x="78" y="250" font-family="DejaVu Sans" font-size="12.5" fill="#475569">"Which US-NORTHEAST categories</text>
+    <text x="78" y="270" font-family="DejaVu Sans" font-size="12.5" fill="#475569">have the highest margin exposure,</text>
+    <text x="78" y="290" font-family="DejaVu Sans" font-size="12.5" fill="#475569">and did our query hit local cache?"</text>
+
+    <rect x="60" y="356" width="312" height="186" rx="12" fill="#F5F3FF" stroke="#7C3AED" stroke-width="2"/>
+    <text x="78" y="386" font-family="DejaVu Sans" font-size="15.5" font-weight="bold" fill="#4C1D95">lakehouse_practitioner_copilot</text>
+    <text x="78" y="410" font-family="DejaVu Sans Mono" font-size="12" fill="#6D28D9">model: gemini-3.8-flash</text>
+    <text x="78" y="432" font-family="DejaVu Sans Mono" font-size="12" fill="#6D28D9">planner: ThinkingLevel.LOW</text>
+    <line x1="78" y1="448" x2="352" y2="448" stroke="#DDD6FE" stroke-width="1.5"/>
+    <text x="78" y="472" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Sub-second intent decomposition</text>
+    <text x="78" y="494" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Delegates SQL -&gt; Sub-Agent #1</text>
+    <text x="78" y="516" font-family="DejaVu Sans" font-size="12.5" fill="#334155">• Delegates Audit -&gt; Sub-Agent #2</text>
+
+    <rect x="60" y="580" width="312" height="174" rx="10" fill="#ECFDF5" stroke="#10B981" stroke-width="1.8"/>
+    <text x="78" y="608" font-family="DejaVu Sans" font-size="14" font-weight="bold" fill="#065F46">5. Unified Synthesized Answer</text>
+    <text x="78" y="632" font-family="DejaVu Sans" font-size="12" fill="#1E293B">• Apparel: $24,412 (Pacific Rim, 19h)</text>
+    <text x="78" y="652" font-family="DejaVu Sans" font-size="12" fill="#1E293B">• Electronics: $7,740 (Apex, 28h)</text>
+    <text x="78" y="676" font-family="DejaVu Sans" font-size="12" font-weight="bold" fill="#047857">• Cache Hit: 96.25% in us-east4</text>
+    <text x="78" y="696" font-family="DejaVu Sans" font-size="12" font-weight="bold" fill="#047857">• Avoided Egress: $4.16 ($0 repeat)</text>
+    <text x="78" y="724" font-family="DejaVu Sans Mono" font-size="11.5" fill="#475569">uv run adk web src</text>
+  </g>
+
+  <!-- Middle Top: Sub-Agent 1 (Cross-Cloud Analyst) -->
+  <g filter="url(#shadow)">
+    <rect x="448" y="128" width="596" height="304" rx="16" fill="#FFFFFF" stroke="#2563EB" stroke-width="2.2"/>
+    <rect x="448" y="128" width="596" height="46" rx="14" fill="#DBEAFE"/>
+    <text x="470" y="157" font-family="DejaVu Sans" font-size="15.2" font-weight="bold" fill="#1E40AF">2. cross_cloud_supply_chain_analyst (ThinkingLevel.MEDIUM)</text>
+
+    <rect x="470" y="194" width="552" height="96" rx="10" fill="#EFF6FF" stroke="#93C5FD"/>
+    <text x="488" y="220" font-family="DejaVu Sans" font-size="13.5" font-weight="bold" fill="#1E3A8A">Tool A: discover_federated_tables (BigLake Iceberg REST API)</text>
+    <text x="488" y="244" font-family="DejaVu Sans" font-size="12.2" fill="#334155">Introspects 4-part federated Unity Catalog &amp; AWS Glue namespaces,</text>
+    <text x="488" y="264" font-family="DejaVu Sans" font-size="12.2" fill="#334155">snapshot IDs, and Iceberg column types (blind to 3-part list_dataset_ids)</text>
+
+    <rect x="470" y="308" width="552" height="104" rx="10" fill="#EFF6FF" stroke="#60A5FA"/>
+    <text x="488" y="334" font-family="DejaVu Sans" font-size="13.5" font-weight="bold" fill="#1E3A8A">Tool B: BigQueryToolset (execute_sql &amp; forecast)</text>
+    <text x="488" y="357" font-family="DejaVu Sans Mono" font-size="11.8" fill="#1D4ED8">WriteMode.BLOCKED | max_bytes_billed=10 GiB | tool_filter=7 tools</text>
+    <text x="488" y="380" font-family="DejaVu Sans" font-size="12.2" fill="#334155">Tags every query with job_labels={"workload": "borderless-lakehouse-adk"}</text>
+    <text x="488" y="399" font-family="DejaVu Sans" font-size="12" fill="#475569">Pushes down WHERE predicates &amp; column projections for minimal block reads</text>
+  </g>
+
+  <!-- Middle Bottom: Sub-Agent 2 (FinOps Advisor) -->
+  <g filter="url(#shadow)">
+    <rect x="448" y="468" width="596" height="312" rx="16" fill="#FFFFFF" stroke="#16A34A" stroke-width="2.2"/>
+    <rect x="448" y="468" width="596" height="46" rx="14" fill="#DCFCE7"/>
+    <text x="470" y="497" font-family="DejaVu Sans" font-size="15.2" font-weight="bold" fill="#166534">4. finops_cache_telemetry_advisor (ThinkingLevel.MEDIUM)</text>
+
+    <rect x="470" y="534" width="552" height="104" rx="10" fill="#ECFDF5" stroke="#6EE7B7"/>
+    <text x="488" y="560" font-family="DejaVu Sans" font-size="13.5" font-weight="bold" fill="#065F46">Tool C: inspect_bigquery_job_cache_stats(job_id="LATEST")</text>
+    <text x="488" y="584" font-family="DejaVu Sans" font-size="12" fill="#334155">Auto-resolves latest completed job labeled workload=borderless-lakehouse-adk</text>
+    <text x="488" y="605" font-family="DejaVu Sans" font-size="12" fill="#334155">Parses statistics.query.objectStorageStats &amp; flags CMEK org policy blocks</text>
+
+    <rect x="470" y="654" width="552" height="104" rx="10" fill="#F0FDF4" stroke="#86EFAC"/>
+    <text x="488" y="680" font-family="DejaVu Sans" font-size="13.2" font-weight="bold" fill="#166534">Tools D &amp; E: Burst FinOps Simulator + GA CLI Blueprints</text>
+    <text x="488" y="704" font-family="DejaVu Sans" font-size="12" fill="#334155">• simulate_agentic_burst_finops(): Models monthly S3 egress vs. local cache</text>
+    <text x="488" y="726" font-family="DejaVu Sans" font-size="12" fill="#334155">• get_federated_catalog_cli_blueprint(): Unity, Glue &amp; BQ Connection CLIs</text>
+  </g>
+
+  <!-- Right Column: Google Cloud Execution & Warm Cache -->
+  <g filter="url(#shadow)">
+    <rect x="1104" y="128" width="460" height="652" rx="16" fill="#0F172A" stroke="#334155" stroke-width="2"/>
+    <text x="1130" y="166" font-family="DejaVu Sans" font-size="17" font-weight="bold" fill="#FFFFFF">3. Lakehouse Execution (us-east4)</text>
+
+    <rect x="1128" y="194" width="412" height="162" rx="12" fill="#1E293B" stroke="#3B82F6" stroke-width="1.8"/>
+    <text x="1148" y="224" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#60A5FA">BigQuery Cross-Cloud Engine</text>
+    <text x="1148" y="250" font-family="DejaVu Sans" font-size="12.5" fill="#E2E8F0">Joins 3 platforms in a single query:</text>
+    <text x="1148" y="274" font-family="DejaVu Sans Mono" font-size="11.5" fill="#93C5FD">• commerce_core.orders (Native BQ)</text>
+    <text x="1148" y="296" font-family="DejaVu Sans Mono" font-size="11.5" fill="#FDA4AF">• dbx_unity_merch.supply_chain.*</text>
+    <text x="1148" y="318" font-family="DejaVu Sans Mono" font-size="11.5" fill="#FCD34D">• aws_glue_logistics.fulfillment.*</text>
+
+    <rect x="1128" y="384" width="412" height="176" rx="12" fill="#064E3B" stroke="#10B981" stroke-width="2"/>
+    <text x="1148" y="414" font-family="DejaVu Sans" font-size="15" font-weight="bold" fill="#4ADE80">Intelligent Regional Cache Hit</text>
+    <text x="1148" y="440" font-family="DejaVu Sans" font-size="12.5" fill="#ECFDF5">• Query #1 warms Parquet column blocks</text>
+    <text x="1148" y="462" font-family="DejaVu Sans" font-size="12.5" fill="#ECFDF5">• Follow-up agent queries #2–#6 serve</text>
+    <text x="1148" y="482" font-family="DejaVu Sans" font-size="12.5" fill="#ECFDF5">  locally in us-east4 ($0 repeat egress)</text>
+    <text x="1148" y="514" font-family="DejaVu Sans Mono" font-size="12" fill="#6EE7B7">cacheBytesRead: 46,200,000,000</text>
+    <text x="1148" y="536" font-family="DejaVu Sans Mono" font-size="12" fill="#FDE68A">objectStorageBytesRead: 1,800,000,000</text>
+
+    <rect x="1128" y="588" width="412" height="164" rx="12" fill="#1E293B" stroke="#64748B" stroke-width="1.5"/>
+    <text x="1148" y="618" font-family="DejaVu Sans" font-size="14.5" font-weight="bold" fill="#F8FAFC">Fleet FinOps SQL Observability</text>
+    <text x="1148" y="644" font-family="DejaVu Sans Mono" font-size="11.5" fill="#38BDF8">`region-us-east4`.INFORMATION_SCHEMA</text>
+    <text x="1148" y="664" font-family="DejaVu Sans Mono" font-size="11.5" fill="#38BDF8">  .JOBS_BY_PROJECT</text>
+    <text x="1148" y="690" font-family="DejaVu Sans" font-size="12" fill="#CBD5E1">UNNEST(object_storage_stats) grouped by</text>
+    <text x="1148" y="710" font-family="DejaVu Sans" font-size="12" fill="#CBD5E1">labels.workload tracks org-wide AI ROI</text>
+  </g>
+
+  <!-- Sequence Arrows -->
+  <line x1="216" y1="318" x2="216" y2="356" stroke="#7C3AED" stroke-width="2.6" marker-end="url(#arrPurple)"/>
+  <path d="M 372 415 L 410 415 L 410 280 L 448 280" fill="none" stroke="#2563EB" stroke-width="2.8" marker-end="url(#arrBlue)"/>
+  <line x1="1044" y1="310" x2="1104" y2="310" stroke="#2563EB" stroke-width="2.8" marker-end="url(#arrBlue)" marker-start="url(#arrBlue)"/>
+  <line x1="1334" y1="356" x2="1334" y2="384" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)" marker-start="url(#arrGreen)"/>
+  <path d="M 372 485 L 410 485 L 410 600 L 448 600" fill="none" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+  <line x1="1104" y1="586" x2="1044" y2="586" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+  <line x1="216" y1="542" x2="216" y2="580" stroke="#16A34A" stroke-width="2.8" marker-end="url(#arrGreen)"/>
+</svg>

@@ -44,10 +44,16 @@ for CAT in "${UNITY_FED_CATALOG_ID}" "${GLUE_CATALOG_ID}"; do
     --quiet 2>/dev/null && echo "    Deleted federated catalog: ${CAT}" || echo "    Catalog '${CAT}' not found (skipped)."
 done
 
-gcloud secrets delete "${DBX_SECRET_NAME}" \
-  --location="${GCP_REGION}" \
-  --project="${PROJECT_ID}" \
-  --quiet 2>/dev/null && echo "    Deleted regional secret: ${DBX_SECRET_NAME}" || echo "    Secret '${DBX_SECRET_NAME}' not found (skipped)."
+REGIONAL_SM_ENDPOINT="https://secretmanager.${GCP_REGION}.rep.googleapis.com/"
+CLOUDSDK_API_ENDPOINT_OVERRIDES_SECRETMANAGER="${REGIONAL_SM_ENDPOINT}" \
+  gcloud secrets delete "${DBX_SECRET_NAME}" \
+    --location="${GCP_REGION}" \
+    --project="${PROJECT_ID}" \
+    --quiet 2>/dev/null && echo "    Deleted regional secret: ${DBX_SECRET_NAME}" || echo "    Secret '${DBX_SECRET_NAME}' not found (skipped)."
+
+# Optional BigQuery Cross-Cloud Connection if created
+bq rm -f --connection --project_id="${PROJECT_ID}" --location="${GCP_REGION}" "${BQ_CC_CONN_ID:-aws_s3_cached_conn}" 2>/dev/null \
+  && echo "    Deleted BigQuery Cross-Cloud Connection: ${BQ_CC_CONN_ID:-aws_s3_cached_conn}" || true
 
 # Optional Service Directory CCI endpoints if created
 if gcloud service-directory namespaces describe "${SD_NAMESPACE}" --location="${GCP_REGION}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
@@ -70,11 +76,13 @@ bq rm -r -f -d "${PROJECT_ID}:commerce_core" 2>/dev/null \
   && echo "    Deleted BigQuery dataset: ${PROJECT_ID}:commerce_core" \
   || echo "    BigQuery dataset '${PROJECT_ID}:commerce_core' not found (skipped)."
 
-# Delete external GCS bucket used for Databricks Unity Catalog POC (if present)
-if gcloud storage buckets describe "gs://${UC_EXTERNAL_GCS_BUCKET}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
-  gcloud storage rm --recursive "gs://${UC_EXTERNAL_GCS_BUCKET}" --project="${PROJECT_ID}" --quiet || true
-  echo "    Deleted GCS bucket: gs://${UC_EXTERNAL_GCS_BUCKET}"
-fi
+# Delete external GCS buckets used for Databricks Unity Catalog POC & Spark staging (if present)
+for BKT in "${UC_EXTERNAL_GCS_BUCKET}" "${STAGING_BUCKET:-${PROJECT_ID}-spark-staging}"; do
+  if gcloud storage buckets describe "gs://${BKT}" --project="${PROJECT_ID}" >/dev/null 2>&1; then
+    gcloud storage rm --recursive "gs://${BKT}" --project="${PROJECT_ID}" --quiet || true
+    echo "    Deleted GCS bucket: gs://${BKT}"
+  fi
+done
 
 # ------------------------------------------------------------------------------
 # 2. AWS Glue Table/Database, IAM Role & S3 Bucket

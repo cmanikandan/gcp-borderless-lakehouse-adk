@@ -106,7 +106,7 @@ def evaluate_job_finops(
     public_egress_rate_per_gb: float = 0.09,
     cci_egress_rate_per_gb: float = 0.02,
 ) -> JobCacheFinOpsReport:
-    """Compute cache hit ratio, avoided egress cost, and architectural guidance."""
+    """Compute cache hit ratio, avoided egress cost, and tuning guidance."""
     providers = parse_object_storage_stats(raw_job_properties)
     total_cache = sum(p.cache_bytes_read for p in providers)
     total_remote = sum(p.object_storage_bytes_read for p in providers)
@@ -151,25 +151,61 @@ def evaluate_job_finops(
     )
 
 
-def inspect_bigquery_job_cache_stats(job_id: str, location: str = "us-east4") -> dict[str, Any]:
-    """ADK Tool: Fetch a BigQuery job by ID and analyze cross-cloud cache & egress savings.
+def _resolve_latest_query_job(
+    client: bigquery.Client,
+    project_id: str,
+    location: str,
+) -> Any:
+    """Find the most recent completed BigQuery QUERY job (preferring ADK-labeled jobs)."""
+    candidates: list[Any] = []
+    for j in client.list_jobs(project=project_id, state_filter="DONE", max_results=20):
+        if getattr(j, "job_type", None) != "query":
+            continue
+        if getattr(j, "location", location) != location:
+            continue
+        labels = getattr(j, "labels", {}) or {}
+        if labels.get("workload") == "borderless-lakehouse-adk":
+            return client.get_job(job_id=j.job_id, location=location)
+        candidates.append(j)
+
+    if candidates:
+        return client.get_job(job_id=candidates[0].job_id, location=location)
+    raise ValueError(f"No completed BigQuery query jobs found in {project_id} ({location}).")
+
+
+def inspect_bigquery_job_cache_stats(
+    job_id: str = "LATEST",
+    location: str = "us-east4",
+) -> dict[str, Any]:
+    """ADK Tool: Inspect a BigQuery job (or 'LATEST' ADK query) for cross-cloud cache savings.
+
+    Note: Because `BigQueryToolset.execute_sql` returns query rows without the `job_id`,
+    passing `job_id='LATEST'` automatically resolves the most recent completed ADK query job!
 
     Args:
-        job_id: The BigQuery Job ID to inspect (e.g. 'bquxjob_1234abcd_192f0').
-        location: The Google Cloud region where the Lakehouse query ran (default 'us-east4').
+        job_id: Specific BigQuery Job ID, or 'LATEST' to auto-select the most recent query job.
+        location: Google Cloud region where the Lakehouse query ran (default 'us-east4').
 
     Returns:
         Dictionary containing per-cloud cacheBytesRead, objectStorageBytesRead,
         cache hit percentage, avoided AWS/Azure egress fees, and tuning guidance.
     """
     settings = load_settings()
-    client = bigquery.Client(project=settings.project_id, location=location)
-    job = client.get_job(job_id=job_id, location=location)
-    # `_properties` contains the full BigQuery REST job representation including objectStorageStats
+    target_loc = location or settings.gcp_region
+    client = bigquery.Client(project=settings.project_id, location=target_loc)
+
+    normalized_id = (job_id or "").strip()
+    if not normalized_id or normalized_id.upper() == "LATEST":
+        job = _resolve_latest_query_job(client, settings.project_id, target_loc)
+        resolved_job_id = str(job.job_id)
+    else:
+        job = client.get_job(job_id=normalized_id, location=target_loc)
+        resolved_job_id = normalized_id
+
     raw_props: dict[str, Any] = getattr(job, "_properties", {}) or {}
     report = evaluate_job_finops(
-        job_id=job_id,
-        location=location,
+        job_id=resolved_job_id,
+        location=target_loc,
         raw_job_properties=raw_props,
         public_egress_rate_per_gb=settings.aws_public_egress_usd_per_gb,
         cci_egress_rate_per_gb=settings.aws_cci_egress_usd_per_gb,
@@ -178,7 +214,7 @@ def inspect_bigquery_job_cache_stats(job_id: str, location: str = "us-east4") ->
 
 
 def simulate_agentic_burst_finops(
-    dataset_scanned_gb_per_query: float = 45.0,
+    dataset_scanned_gb_per_query: float = 48.0,
     queries_per_agent_investigation: int = 6,
     daily_investigations: int = 40,
 ) -> dict[str, Any]:
@@ -188,9 +224,9 @@ def simulate_agentic_burst_finops(
     multiple iterative follow-up SQL queries against federated S3 / Unity Catalog tables.
 
     Args:
-        dataset_scanned_gb_per_query: Average remote Iceberg Parquet GB scanned per query.
-        queries_per_agent_investigation: Number of iterative SQL tool calls per user prompt.
-        daily_investigations: Number of agent investigations per day across the team.
+        dataset_scanned_gb_per_query: Average remote Iceberg Parquet GB scanned per query (default 48 GB).
+        queries_per_agent_investigation: Number of iterative SQL tool calls per user prompt (default 6).
+        daily_investigations: Number of agent investigations per day across the team (default 40).
 
     Returns:
         Monthly egress comparison (Uncached Public Internet vs. Intelligent Regional Cache).
@@ -202,8 +238,8 @@ def simulate_agentic_burst_finops(
         uncached_total_gb * settings.aws_public_egress_usd_per_gb, 2
     )
 
-    # With Lakehouse Intelligent Caching, the initial cold scan populates the regional block
-    # cache; subsequent agent queries within the snapshot window read locally (assume ~92% hit rate).
+    # With Lakehouse Intelligent Caching ($0 extra Google Cloud fee), query #1 warms the regional
+    # block cache; subsequent agent queries within the snapshot window read locally (~92% hit rate).
     cached_remote_gb = round(uncached_total_gb * 0.08, 2)
     cached_local_gb = round(uncached_total_gb * 0.92, 2)
     cached_public_cost_usd = round(
@@ -235,17 +271,17 @@ def get_federated_catalog_cli_blueprint(
     enable_cache: bool = True,
     enable_user_identity: bool = True,
 ) -> dict[str, str]:
-    """ADK Tool: Generate verified GA `gcloud biglake iceberg catalogs` CLI commands.
+    """ADK Tool: Generate verified GA CLI commands for Cross-Cloud Federation & Caching.
 
     Args:
-        provider: Either 'unity' (Databricks Unity Catalog) or 'glue' (AWS Glue Data Catalog).
-        catalog_name: Desired Lakehouse catalog name in Google Cloud.
+        provider: 'unity' (Databricks Unity Catalog), 'glue' (AWS Glue), or 'bq-connection' (BigQuery AWS Connection).
+        catalog_name: Desired Lakehouse catalog ID or BigQuery connection ID.
         gcp_region: Target Google Cloud region closest to remote storage (e.g. 'us-east4').
-        enable_cache: Whether to opt in to `--cross-cloud-cache=enabled`.
+        enable_cache: Whether to opt in to Cross-Cloud Intelligent Caching.
         enable_user_identity: Propagate end-user OIDC identities (supported for 'unity').
 
     Returns:
-        Dictionary with exact GA CLI command and architectural notes.
+        Dictionary with exact GA CLI command and practitioner setup notes.
     """
     settings = load_settings()
     cache_flag = "enabled" if enable_cache else "disabled"
@@ -265,13 +301,13 @@ def get_federated_catalog_cli_blueprint(
             f'  --unity-service-principal-application-id="<SP_APP_UUID>" \\\n'
             f'  --federated-catalog-identity-mode="{identity_mode}" \\\n'
             f'  --cross-cloud-cache="{cache_flag}" \\\n'
-            f'  --primary-location="{gcp_region}" \\\n'
-            f'  --refresh-interval="300s"'
+            f'  --primary-location="{gcp_region}"'
         )
         note = (
-            "Ensure External Data Access is enabled on the Unity Catalog metastore, grant "
-            "`EXTERNAL USE SCHEMA` to the service principal, and configure the Databricks "
-            "account-wide OIDC federation policy for user-identity-federation."
+            "Ensure External Data Access is enabled on the Unity Catalog metastore, use a "
+            "registered External Location (not Databricks default storage), grant "
+            "`EXTERNAL USE SCHEMA` to the service principal, configure OIDC federation "
+            "policies, and then run `gcloud biglake iceberg catalogs update` with `--refresh-interval=300s`."
         )
     elif norm in ("glue", "aws-glue", "aws_glue"):
         cmd = (
@@ -286,12 +322,25 @@ def get_federated_catalog_cli_blueprint(
             f'  --primary-location="{gcp_region}"'
         )
         note = (
-            "User identity federation is currently supported only for Databricks Unity Catalog; "
-            "AWS Glue uses OIDC service-account federation (`biglake-service-account-id`). "
-            "After updating the AWS IAM role trust policy, run `gcloud biglake iceberg catalogs update` "
-            "with `--refresh-interval=300s`."
+            "For Amazon S3 Tables, pass `--glue-warehouse=\"<ACCOUNT_ID>:s3tablescatalog/<TABLE_BUCKET>\"`. "
+            "Extract `biglake-service-account-id` from `catalogs describe`, bind `accounts.google.com:aud` "
+            "and `accounts.google.com:sub` in your AWS IAM trust policy, then run `catalogs update --refresh-interval=300s`."
+        )
+    elif norm in ("bq-connection", "bigquery-connection", "aws-connection"):
+        cache_bool = "true" if enable_cache else "false"
+        cmd = (
+            f"bq mk --connection \\\n"
+            f"  --connection_type='AWS' \\\n"
+            f'  --location="{gcp_region}" \\\n'
+            f'  --project_id="{settings.project_id}" \\\n'
+            f'  --properties=\'{{"accessRole":{{"iamRoleId":"arn:aws:iam::<12_DIGIT_AWS_ACCOUNT_ID>:role/lakehouse_glue_federation_role"}},"crossCloudCacheOptions":{{"enabled":{cache_bool}}}}}\' \\\n'
+            f"  {catalog_name}"
+        )
+        note = (
+            "Alternative GA surface for standalone BigLake S3/ADLS external tables in standard "
+            "BigQuery regions (no BigQuery Omni `aws-*`/`azure-*` reservation required; $0 extra cache fee)."
         )
     else:
-        raise ValueError("Unsupported provider. Choose 'unity' or 'glue'.")
+        raise ValueError("Unsupported provider. Choose 'unity', 'glue', or 'bq-connection'.")
 
     return {"provider": norm, "gcloud_command": cmd, "practitioner_note": note}

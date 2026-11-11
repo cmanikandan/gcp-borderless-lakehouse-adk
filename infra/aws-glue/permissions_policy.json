@@ -38,6 +38,8 @@
       "Sid": "OptionalS3TablesSupport",
       "Effect": "Allow",
       "Action": [
+        "s3tables:ListNamespaces",
+        "s3tables:ListTables",
         "s3tables:GetTable",
         "s3tables:GetTableBucket",
         "s3tables:GetNamespace",

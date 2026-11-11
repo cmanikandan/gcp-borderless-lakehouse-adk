@@ -11,13 +11,6 @@
 
 ---
 
-## Companion Articles (`discuss.google.dev` & Medium)
-
-* **Google Developer Program Forums (`discuss.google.dev`) Article**: [`blog/discuss_google_dev_post.md`](blog/discuss_google_dev_post.md) — formatted directly to the `discuss.google.dev` Googler Article guidelines (sentence-case headings, Discourse `<details>` blocks, community resource links, and absolute GitHub Raw PNG URLs so you can copy-paste raw Markdown straight into `https://discuss.google.dev/`).
-* **Companion Medium Post**: [`blog/medium_blog_post.md`](blog/medium_blog_post.md)
-
----
-
 ## Why Google Cloud Lakehouse?
 
 **Google Cloud Lakehouse** (powered by BigLake and BigQuery) provides an open, cloud-spanning data foundation built around five core advantages:

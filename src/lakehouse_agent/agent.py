@@ -1,10 +1,16 @@
 """Multi-Agent Google ADK 2.x Suite for Google Cloud Borderless Lakehouse POC.
 
-Powered by `gemini-3.8-flash` (with native `BuiltInPlanner` `ThinkingLevel` routing),
-`google.adk.integrations.bigquery.BigQueryToolset`, and custom BigLake Iceberg REST
-catalog discovery. Unifies zero-ETL SQL analytics & TimesFM forecasting across native
-BigQuery, standalone Databricks Unity Catalog, and AWS Glue Data Catalog—paired with
-real-time Cross-Cloud Intelligent Caching FinOps.
+Implements heterogeneous Gemini model routing across roles (`MODEL_PROFILE=tiered`):
+- `lakehouse_practitioner_copilot` -> `gemini-4-argon` (`ThinkingLevel.LOW`) for fast
+  frontier intent decomposition, routing, and concise synthesis.
+- `cross_cloud_supply_chain_analyst` -> `gemini-4-carbon` (`ThinkingLevel.HIGH`) for
+  deep multi-table SQL reasoning, schema verification across BigQuery + Databricks Unity
+  Catalog + AWS Glue, and zero-shot TimesFM `AI.FORECAST` analysis.
+- `finops_cache_telemetry_advisor` -> `gemini-3.8-flash` (`ThinkingLevel.LOW`) for rapid,
+  cost-efficient `objectStorageStats` inspection and CLI blueprint generation.
+
+Also supports uniform single-model profiles (`argon`, `carbon`, `flash`) and explicit
+per-turn `max_output_tokens` guardrails for Gemini 4's 1M-token decode window.
 """
 
 from __future__ import annotations
@@ -32,7 +38,7 @@ from lakehouse_agent.cache_telemetry import (
     simulate_agentic_burst_finops,
 )
 from lakehouse_agent.catalog_discovery import discover_federated_catalog_tables
-from lakehouse_agent.config import LakehouseSettings, load_settings
+from lakehouse_agent.config import LakehouseSettings, load_settings, sanitize_bq_label
 
 # Explicit allowlist compatible with WriteMode.BLOCKED & zero extra optional dependencies
 # (`execute_sql` + `forecast` work directly on 4-part federated Iceberg tables!)
@@ -67,7 +73,8 @@ def build_bigquery_toolset(
         application_name="borderless-lakehouse-adk-copilot",
         job_labels={
             "workload": "borderless-lakehouse-adk",
-            "llm_model": "gemini-3-8-flash",
+            "llm_model": sanitize_bq_label(settings.resolved_analyst_model),
+            "model_profile": sanitize_bq_label(settings.model_profile),
         },
     )
 
@@ -95,13 +102,24 @@ def build_bigquery_toolset(
     )
 
 
+def _analyst_thinking_level(model_id: str) -> types.ThinkingLevel:
+    """Select deeper reasoning on Gemini 4 Carbon while keeping Argon/Flash responsive."""
+    if "carbon" in model_id.lower():
+        return types.ThinkingLevel.HIGH
+    return types.ThinkingLevel.MEDIUM
+
+
 def build_lakehouse_agent_system(
     settings: LakehouseSettings | None = None,
     user_access_token: str | None = None,
 ) -> Agent:
-    """Build the Gemini 3.8 Flash multi-agent system for Borderless Lakehouse."""
+    """Build the multi-model Google ADK 2.x system for Borderless Lakehouse."""
     cfg = settings or load_settings()
     bq_toolset = build_bigquery_toolset(cfg, user_access_token=user_access_token)
+
+    coord_model = cfg.resolved_coordinator_model
+    analyst_model = cfg.resolved_analyst_model
+    finops_model = cfg.resolved_finops_model
 
     def discover_federated_tables(
         catalog_id: str,
@@ -117,23 +135,35 @@ def build_lakehouse_agent_system(
             user_access_token=user_access_token,
         )
 
-    analyst_planner = BuiltInPlanner(
-        thinking_config=types.ThinkingConfig(
-            thinking_level=types.ThinkingLevel.MEDIUM,
-            include_thoughts=True,
-        )
-    )
     router_planner = BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
             thinking_level=types.ThinkingLevel.LOW,
             include_thoughts=True,
         )
     )
+    analyst_planner = BuiltInPlanner(
+        thinking_config=types.ThinkingConfig(
+            thinking_level=_analyst_thinking_level(analyst_model),
+            include_thoughts=True,
+        )
+    )
+    finops_planner = BuiltInPlanner(
+        thinking_config=types.ThinkingConfig(
+            thinking_level=types.ThinkingLevel.LOW,
+            include_thoughts=True,
+        )
+    )
+
+    # Explicit max_output_tokens cap prevents runaway spend on Gemini 4's 1M-token decode window
+    bounded_gen_config = types.GenerateContentConfig(
+        max_output_tokens=cfg.max_output_tokens,
+    )
 
     cross_cloud_analyst = Agent(
         name="cross_cloud_supply_chain_analyst",
-        model=cfg.gemini_model,
+        model=analyst_model,
         planner=analyst_planner,
+        generate_content_config=bounded_gen_config,
         description=(
             "Discovers federated Iceberg schemas and executes read-only cross-platform SQL joins "
             "and TimesFM forecasts across BigQuery, standalone Databricks Unity Catalog, and AWS Glue."
@@ -158,8 +188,9 @@ Always:
 
     finops_cache_advisor = Agent(
         name="finops_cache_telemetry_advisor",
-        model=cfg.gemini_model,
-        planner=analyst_planner,
+        model=finops_model,
+        planner=finops_planner,
+        generate_content_config=bounded_gen_config,
         description=(
             "Audits Google Cloud Lakehouse Cross-Cloud Intelligent Caching performance "
             "(`cacheBytesRead` vs `objectStorageBytesRead`), calculates avoided egress costs, "
@@ -181,8 +212,9 @@ Highlight when 0% cache hit indicates `--cross-cloud-cache=disabled` or `constra
 
     orchestrator = Agent(
         name="lakehouse_practitioner_copilot",
-        model=cfg.gemini_model,
+        model=coord_model,
         planner=router_planner,
+        generate_content_config=bounded_gen_config,
         description=(
             "Cloud Practitioner POC Copilot orchestrating zero-ETL cross-platform analytics "
             "(BigQuery + Databricks Unity Catalog + AWS Glue) and Intelligent Caching FinOps."

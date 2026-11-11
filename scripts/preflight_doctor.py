@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Zero-Mutation Cloud Readiness & Guardrail Validator (`preflight_doctor.py`).
 
-Checks local developer CLIs, environment alignment (including BigQuery `us-east4` vs.
-AWS `us-east-1` co-location and Vertex AI `global` endpoint separation), and—when
-`--check-cloud` is passed—live Google Cloud org policy guardrails such as
-`constraints/gcp.restrictNonCmekServices` (which silently disables Intelligent Caching).
+Checks local developer CLIs, environment alignment (BigQuery `us-east4` vs. AWS `us-east-1`
+co-location, Vertex AI / Agent Platform `global` endpoint separation, and Gemini 4 / 3.8
+model tiering + `max_output_tokens` decode guardrails), and—when `--check-cloud` is passed—
+live Google Cloud org policy guardrails such as `constraints/gcp.restrictNonCmekServices`.
 
 Usage:
   uv run python scripts/preflight_doctor.py
@@ -20,7 +20,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 
-from lakehouse_agent.config import load_settings
+from lakehouse_agent.config import SUPPORTED_GEMINI_MODELS, load_settings
 
 LOW_LATENCY_PAIRINGS: dict[str, set[str]] = {
     "us-east-1": {"us-east4", "us-east1", "us-east5", "us-central1"},
@@ -76,21 +76,55 @@ def check_local_environment() -> list[CheckResult]:
             )
         )
 
-    if cfg.vertex_location == cfg.gcp_region and os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
+    if cfg.vertex_location != "global" and os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").upper() == "TRUE":
         results.append(
             CheckResult(
-                "Vertex AI vs. BigQuery Endpoint Separation",
+                "Gemini Global vs. BigQuery Regional",
                 "WARN",
-                f"GOOGLE_CLOUD_LOCATION='{cfg.vertex_location}' matches BQ_LOCATION. "
-                "Set GOOGLE_CLOUD_LOCATION=global for Vertex AI Gemini 3.8 Flash while keeping BQ_LOCATION=us-east4.",
+                f"GOOGLE_CLOUD_LOCATION='{cfg.vertex_location}'. Use 'global' for Gemini 4 Argon/Carbon & 3.8 Flash "
+                "to avoid the 10% regional endpoint premium while keeping BQ_LOCATION='us-east4'.",
             )
         )
     else:
         results.append(
             CheckResult(
-                "Vertex AI vs. BigQuery Endpoint Separation",
+                "Gemini Global vs. BigQuery Regional",
                 "PASS",
-                f"Vertex AI='{cfg.vertex_location}' | BigQuery/Cache='{cfg.gcp_region}' | Model='{cfg.gemini_model}'.",
+                f"Gemini endpoint='{cfg.vertex_location}' | BigQuery/Cache='{cfg.gcp_region}'.",
+            )
+        )
+
+    configured_models = (
+        cfg.resolved_coordinator_model,
+        cfg.resolved_analyst_model,
+        cfg.resolved_finops_model,
+    )
+    retired = [m for m in configured_models if m.startswith("gemini-2.5")]
+    unknown = [m for m in configured_models if m not in SUPPORTED_GEMINI_MODELS]
+    if retired:
+        results.append(
+            CheckResult(
+                "Gemini Model Lineup",
+                "FAIL",
+                f"Retired Gemini 2.5 model detected ({retired}); migrate to gemini-4-argon, gemini-4-carbon, or gemini-3.8-flash.",
+            )
+        )
+    elif unknown:
+        results.append(
+            CheckResult(
+                "Gemini Model Lineup",
+                "WARN",
+                f"Custom model IDs {unknown}; verified defaults are {sorted(SUPPORTED_GEMINI_MODELS)}.",
+            )
+        )
+    else:
+        results.append(
+            CheckResult(
+                "Gemini Model Lineup & Output Cap",
+                "PASS",
+                f"Profile='{cfg.model_profile}' (Coord={cfg.resolved_coordinator_model}, "
+                f"Analyst={cfg.resolved_analyst_model}, FinOps={cfg.resolved_finops_model}, "
+                f"max_output_tokens={cfg.max_output_tokens}).",
             )
         )
 

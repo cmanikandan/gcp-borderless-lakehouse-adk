@@ -6,7 +6,7 @@ When an autonomous AI agent investigates a production supply chain anomaly, it r
 
 With the General Availability (GA) of [cross-cloud federated catalogs and cross-cloud caching in Google Cloud Lakehouse](https://docs.cloud.google.com/lakehouse/docs/release-notes), cloud practitioners can query remote **Apache Iceberg** tables in **Databricks Unity Catalog**, **AWS Glue Data Catalog**, **Snowflake Horizon Catalog**, and **Workday Data Lake** directly from **BigQuery** and **Apache Spark** without building brittle ETL pipelines—while caching active Parquet blocks inside your Google Cloud region at **$0 additional Google Cloud fee**.
 
-First, we unpack the core architecture of Google Cloud Lakehouse, including background metadata synchronization, short-lived credential vending, OpenID Connect (OIDC) user identity federation, and regional block caching. Second, we walk step by step through provisioning AWS Glue, a standalone Databricks Unity Catalog workspace, BigQuery, Managed Service for Apache Spark, and a multi-agent copilot built with **Google Agent Development Kit (Google ADK)** and **Gemini 3.8 Flash**. Finally, we evaluate a real-world retail supply chain scenario, measure 30-day multi-agent egress savings, and clean up every proof-of-concept resource.
+First, we unpack the core architecture of Google Cloud Lakehouse, including background metadata synchronization, short-lived credential vending, OpenID Connect (OIDC) user identity federation, and regional block caching. Second, we walk step by step through provisioning AWS Glue, a standalone Databricks Unity Catalog workspace, BigQuery, Managed Service for Apache Spark, and a tiered multi-agent copilot built with **Google Agent Development Kit (Google ADK)** pairing **Gemini 4 Argon**, **Gemini 4 Carbon**, and **Gemini 3.8 Flash**. Finally, we evaluate a real-world retail supply chain scenario, measure 30-day multi-agent egress savings, explore additional cross-cloud use cases, and clean up every proof-of-concept resource.
 
 > **Proof-of-concept disclaimer:** Everything in this article and the [companion GitHub repository (`cmanikandan/gcp-borderless-lakehouse-adk`)](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk) is an educational proof of concept (POC) built from a cloud practitioner's perspective to validate cross-cloud capabilities hands-on. Before deploying production workloads, always consult the official [Google Cloud Lakehouse documentation](https://docs.cloud.google.com/lakehouse/docs/about-cross-cloud-data-access), [Databricks Unity Catalog documentation](https://docs.databricks.com/en/data-governance/unity-catalog/index.html), and [AWS Glue Apache Iceberg documentation](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-format-iceberg.html) for production security hardening, IAM least-privilege policies, networking, and service limits.
 
@@ -22,7 +22,7 @@ Enterprise datasets rarely live in a single cloud. Historically, analytics teams
 * **Zero-ETL cross-cloud federated catalogs (GA):** Configuring `--catalog-type="federated"` synchronizes catalog namespaces and Iceberg snapshot pointers in the background from **Databricks Unity Catalog** (on AWS, Azure, or Google Cloud, or via the standalone Databricks portal), **AWS Glue Data Catalog** (including Amazon S3 Table Buckets), **Snowflake Horizon Catalog**, and **Workday Data Lake**.
 * **Intelligent cross-cloud caching (GA):** Disabled by default and available at **$0 additional Google Cloud fee**, opting into cross-cloud caching stores active remote Parquet column blocks in Google-managed regional cache inside your Google Cloud region. Every query still checks remote snapshot metadata and access control lists (ACLs) so stale or unauthorized blocks are never served, while warm BigQuery reads execute at local speed with **$0 repeat cross-cloud egress**.
 * **Secretless credential vending, private routing, and user identity federation:** Compute clusters never store static AWS keys or long-lived tokens; Lakehouse vends short-lived, table-scoped credentials on demand. Traffic routes over TLS 1.3 or privately over **Cross-Cloud Interconnect** inside **VPC Service Controls** perimeters (`biglake.googleapis.com` and `bigquery.googleapis.com`), and **Databricks Unity Catalog** supports end-to-end **OIDC user identity federation** for row filters, column masks, and per-user audit logging in `system.access.audit`.
-* **Agent-ready analytics foundation:** Because federated tables behave like native tables in BigQuery—supporting predicate pushdown and zero-shot time-series forecasting (`AI.FORECAST` with TimesFM 2.0)—multi-agent applications built with **Google ADK** and **Gemini 3.8 Flash** can run iterative SQL investigations without multiplying cross-cloud egress costs.
+* **Agent-ready analytics foundation:** Because federated tables behave like native tables in BigQuery—supporting predicate pushdown and zero-shot time-series forecasting (`AI.FORECAST` with TimesFM 2.0)—multi-agent applications built with **Google ADK** across **Gemini 4 Carbon**, **Gemini 4 Argon**, and **Gemini 3.8 Flash** can run deep iterative SQL investigations without multiplying cross-cloud egress costs.
 
 ---
 
@@ -213,15 +213,26 @@ WHERE j.creation_time >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
 GROUP BY 1;
 ```
 
-### 5. Building a multi-agent copilot with Google ADK and Gemini 3.8 Flash
+### 5. Building a tiered multi-agent copilot with Google ADK and Gemini 4
 
 ![Multi-agent cross-cloud analytics and cost telemetry with Google ADK](https://raw.githubusercontent.com/cmanikandan/gcp-borderless-lakehouse-adk/main/docs/images/adk_multi_agent_cache_sequence.png)
 
-In [`src/lakehouse_agent/agent.py`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/blob/main/src/lakehouse_agent/agent.py), we implement the Coordinator multi-agent pattern using **Google ADK 2.x** (`google-adk`) and **`gemini-3.8-flash`** with three practical guardrails:
+Pinning every agent in a multi-agent workflow to a single model forces an unnecessary compromise: using a lightweight model everywhere sacrifices reasoning depth on complex multi-catalog joins, while using the heaviest model for simple telemetry lookups adds latency and thinking-token spend.
 
-1. **4-part federated schema discovery (`discover_federated_catalog_tables`):** Standard `list_dataset_ids` only enumerates 3-part BigQuery datasets, so our custom tool queries the BigLake Iceberg REST API to discover 4-part Unity Catalog and AWS Glue schemas and current snapshot IDs.
-2. **Read-only SQL + zero-shot `AI.FORECAST` filter:** We configure `WriteMode.BLOCKED`, enforce a 10 GiB per-query scan cap, and restrict `BigQueryToolset` to read-only metadata tools, `execute_sql`, and zero-shot `forecast` (TimesFM 2.0).
-3. **Automated `job_id="LATEST"` cache auditing:** Every agent SQL job carries `job_labels={"workload": "borderless-lakehouse-adk"}` so our FinOps specialist sub-agent automatically verifies `objectStorageStats` after each investigation:
+In [`src/lakehouse_agent/config.py`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/blob/main/src/lakehouse_agent/config.py) and [`src/lakehouse_agent/agent.py`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/blob/main/src/lakehouse_agent/agent.py), our default `MODEL_PROFILE="tiered"` configuration assigns the right **Gemini 4** or **Gemini 3.8** model to each specialist role (and supports `--model-profile argon|carbon|flash` for single-model comparisons):
+
+| ADK agent role | Default model (`MODEL_PROFILE=tiered`) | `ThinkingLevel` | Why this model fits the role |
+| :--- | :--- | :--- | :--- |
+| **Coordinator (`lakehouse_practitioner_copilot`)** | **`gemini-4-argon`** | `LOW` | Delivers Gemini 4 frontier intelligence with fast turn latency and lower thinking-token spend for intent routing and synthesis. |
+| **Cross-cloud SQL analyst (`cross_cloud_supply_chain_analyst`)** | **`gemini-4-carbon`** | `HIGH` | Uses deeper multi-step reasoning across a 1M-token context window to verify 4-part cross-cloud SQL joins, edge cases, and `AI.FORECAST` projections. |
+| **Cache FinOps advisor (`finops_cache_telemetry_advisor`)** | **`gemini-3.8-flash`** | `LOW` | High-throughput, low-cost execution for deterministic `objectStorageStats` JSON inspection and CLI blueprint generation. |
+
+We also pair this multi-model routing with four production-minded guardrails in [`src/lakehouse_agent/agent.py`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/blob/main/src/lakehouse_agent/agent.py):
+
+1. **4-part federated schema discovery (`discover_federated_catalog_tables`):** Standard `list_dataset_ids` only enumerates 3-part BigQuery datasets, so our custom tool queries the BigLake Iceberg REST API to discover 4-part Unity Catalog and AWS Glue schemas and snapshot IDs.
+2. **Read-only SQL + TimesFM 2.0 `AI.FORECAST` allowlist:** We enforce `WriteMode.BLOCKED`, a 10 GiB per-query BigQuery scan cap, and an explicit tool filter keeping `execute_sql` and zero-shot `forecast`.
+3. **Explicit Gemini 4 output decode cap (`max_output_tokens=8192`):** Because **Gemini 4 Argon** and **Gemini 4 Carbon** support up to a 1M-token output decode window, attaching `GenerateContentConfig(max_output_tokens=8192)` prevents accidental runaway token bills—while serving Gemini on `GOOGLE_CLOUD_LOCATION=global` avoids the 10% regional endpoint premium as BigQuery stays co-located in `us-east4`.
+4. **Dynamic `llm_model` & `job_id="LATEST"` telemetry labels:** Every agent SQL job dynamically stamps `job_labels={"workload": "borderless-lakehouse-adk", "llm_model": sanitize_bq_label(analyst_model)}`, allowing our FinOps sub-agent and `INFORMATION_SCHEMA.JOBS_BY_PROJECT` to correlate storage cache hit ratios with the exact Gemini model tier:
 
 ```python
 from google.adk.agents import Agent
@@ -236,13 +247,20 @@ from lakehouse_agent.cache_telemetry import (
     simulate_agentic_burst_finops,
 )
 from lakehouse_agent.catalog_discovery import discover_federated_catalog_tables
+from lakehouse_agent.config import LakehouseSettings, load_settings, sanitize_bq_label
 
 ALLOWED_BQ_TOOLS = [
     "execute_sql", "forecast", "list_dataset_ids",
     "get_dataset_info", "list_table_ids", "get_table_info", "get_job_info",
 ]
 
-def build_copilot(project_id: str, user_oauth_token: str | None = None) -> Agent:
+def build_copilot(
+    settings: LakehouseSettings | None = None,
+    user_oauth_token: str | None = None,
+) -> Agent:
+    cfg = settings or load_settings()  # Default profile="tiered": Argon + Carbon + 3.8 Flash
+    bounded_output = types.GenerateContentConfig(max_output_tokens=cfg.max_output_tokens)
+
     bq_toolset = BigQueryToolset(
         credentials_config=(
             BigQueryCredentialsConfig(credentials=Credentials(token=user_oauth_token))
@@ -250,20 +268,24 @@ def build_copilot(project_id: str, user_oauth_token: str | None = None) -> Agent
         ),
         bigquery_tool_config=BigQueryToolConfig(
             write_mode=WriteMode.BLOCKED,
-            location="us-east4",
-            compute_project_id=project_id,
-            maximum_bytes_billed=10 * 1024**3,
-            job_labels={"workload": "borderless-lakehouse-adk"},
+            location=cfg.gcp_region,
+            compute_project_id=cfg.project_id,
+            maximum_bytes_billed=cfg.max_bytes_billed,
+            job_labels={
+                "workload": "borderless-lakehouse-adk",
+                "llm_model": sanitize_bq_label(cfg.resolved_analyst_model),
+            },
         ),
         tool_filter=ALLOWED_BQ_TOOLS,
     )
 
     analyst = Agent(
         name="cross_cloud_supply_chain_analyst",
-        model="gemini-3.8-flash",
+        model=cfg.resolved_analyst_model,  # gemini-4-carbon
         planner=BuiltInPlanner(
-            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.MEDIUM)
+            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.HIGH)
         ),
+        generate_content_config=bounded_output,
         instruction=(
             "Discover 4-part schemas via `discover_federated_catalog_tables` and join "
             "BigQuery (`commerce_core.orders`), standalone Databricks (`dbx_unity_merch`), "
@@ -274,17 +296,22 @@ def build_copilot(project_id: str, user_oauth_token: str | None = None) -> Agent
 
     finops_advisor = Agent(
         name="finops_cache_telemetry_advisor",
-        model="gemini-3.8-flash",
+        model=cfg.resolved_finops_model,   # gemini-3.8-flash
+        planner=BuiltInPlanner(
+            thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
+        ),
+        generate_content_config=bounded_output,
         instruction="Call `inspect_bigquery_job_cache_stats(job_id='LATEST')` to report cache ROI.",
         tools=[inspect_bigquery_job_cache_stats, simulate_agentic_burst_finops],
     )
 
     return Agent(
         name="lakehouse_practitioner_copilot",
-        model="gemini-3.8-flash",
+        model=cfg.resolved_coordinator_model,  # gemini-4-argon
         planner=BuiltInPlanner(
             thinking_config=types.ThinkingConfig(thinking_level=types.ThinkingLevel.LOW)
         ),
+        generate_content_config=bounded_output,
         instruction="Coordinate cross-platform SQL analytics and cross-cloud cache telemetry.",
         sub_agents=[analyst, finops_advisor],
     )
@@ -302,7 +329,7 @@ Consider *OmniRetail Horizon*, a global retail team responding to port congestio
 * **Standalone Databricks Unity Catalog:** Supplier geopolitical risk scores and SKU unit cost margins (`omniretail_merch.supply_chain.*`).
 * **AWS Cloud (`us-east-1`):** Real-time carrier delay events on Amazon S3 registered in AWS Glue (`fulfillment.shipment_events`).
 
-When a supply chain practitioner asks the ADK copilot, *"Which US-NORTHEAST categories have the highest gross margin exposure, and did our query hit the regional cache?"*, BigQuery pushes down the `delay_hours > 12` and `geopolitical_risk_score >= 0.65` predicates—automatically pruning healthy Midwest order `ORD-8803` (`2h` delay, `0.14` risk on `NordicFreight`) and returning **$39,202.00** in total gross margin exposure across three delayed shipments:
+When a supply chain practitioner asks the ADK copilot, *"Which US-NORTHEAST categories have the highest gross margin exposure, and did our query hit the regional cache?"*, **Gemini 4 Argon** delegates the cross-cloud join to **Gemini 4 Carbon**, BigQuery pushes down the `delay_hours > 12` and `geopolitical_risk_score >= 0.65` predicates—automatically pruning healthy Midwest order `ORD-8803` (`2h` delay, `0.14` risk on `NordicFreight`)—and **Gemini 3.8 Flash** verifies the cache hit telemetry on the resulting job (`$39,202.00` total gross margin exposure):
 
 | `customer_region` | `category` | `supplier_name` | `geopolitical_risk_score` | `carrier` | `delay_hours` | `affected_orders` | `gross_margin_exposure_usd` |
 | :--- | :--- | :--- | ---: | :--- | ---: | ---: | ---: |
@@ -312,7 +339,7 @@ When a supply chain practitioner asks the ADK copilot, *"Which US-NORTHEAST cate
 
 ### Measuring 30-day cloud egress savings on multi-agent loops
 
-Because AI agents iterate rapidly over recent partitions, enabling cross-cloud caching changes the economics of multi-cloud agentic analytics (`uv run python scripts/demo_agent_cache_finops.py`):
+Because AI agents iterate rapidly over recent partitions, enabling cross-cloud caching transforms the economics of multi-cloud agentic analytics (`uv run python scripts/demo_agent_cache_finops.py`):
 
 | Deployment pattern (40 daily 6-query agent investigations × 48 GB) | Monthly remote egress | Estimated monthly egress cost | Savings vs. uncached |
 | :--- | ---: | ---: | ---: |
@@ -353,13 +380,24 @@ DROP STORAGE CREDENTIAL IF EXISTS lakehouse_poc_cred;
 
 ## Conclusion and next steps
 
-With **cross-cloud federated catalogs (GA)** and **cross-cloud caching (GA)**, **Google Cloud Lakehouse** lets you unify **BigQuery**, **Managed Service for Apache Spark**, **Databricks Unity Catalog**, and **AWS Glue Data Catalog** on open Apache Iceberg standards—delivering zero-ETL agility, unified OIDC governance, and predictable cross-cloud costs for **Gemini 3.8 Flash** multi-agent workloads.
+With **cross-cloud federated catalogs (GA)** and **cross-cloud caching (GA)**, **Google Cloud Lakehouse** unifies **BigQuery**, **Managed Service for Apache Spark**, **Databricks Unity Catalog**, **AWS Glue Data Catalog**, **Snowflake Horizon Catalog**, and **Workday Data Lake** on open Apache Iceberg standards. Pairing that zero-ETL data foundation with tiered **Google ADK** agents—using **Gemini 4 Argon** for fast orchestration, **Gemini 4 Carbon** for deep cross-cloud SQL and forecasting reasoning, and **Gemini 3.8 Flash** for lightweight telemetry—delivers fast multi-cloud insights while keeping both cloud egress and token budgets predictable.
 
-Ready to try it out?
+### Additional cross-cloud use cases unlocked by this architecture
 
-1. **Run the POC hands-on:** Clone [`cmanikandan/gcp-borderless-lakehouse-adk`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk), start with `make install && make test && make demo-finops`, and walk through the full cross-cloud setup.
-2. **Review production guidance:** Check the official Google Cloud, Databricks, and AWS documentation linked below before planning production deployments.
-3. **Join the conversation:** How are you handling cross-cloud Iceberg governance or multi-agent query costs today? Drop your questions, benchmarks, or feedback in the comments below!
+Beyond retail supply chain risk, the exact same federation, caching, credential-vending, and multi-model ADK patterns apply directly to several high-impact enterprise workloads:
+
+* **Post-merger financial diligence and revenue reconciliation (`Snowflake Horizon Catalog` + `Databricks Unity Catalog` + `BigQuery`):** Join billing ledgers in **Snowflake Horizon Catalog**, ML credit/churn features in **Databricks Unity Catalog**, and core ERP actuals in **BigQuery** without months of post-M&A ETL migration—letting **Gemini 4 Carbon** perform multi-step variance attribution while regional caching absorbs repetitive close-week queries.
+* **Workforce capacity and operational margin planning (`Workday Data Lake` + `AWS Glue` + `BigQuery`):** Combine governed HR and shift-staffing datasets in **Workday Data Lake** with fulfillment labor/IoT telemetry in **AWS Glue** and finance budgets in **BigQuery**, keeping sensitive workforce records governed in place without staging copies.
+* **Autonomous cybersecurity threat hunting across cloud logs (`Amazon S3 Table Buckets` + `VPC Service Controls` + `Gemini 4 Carbon`):** Retain petabytes of CloudTrail, VPC Flow, and EDR logs as Apache Iceberg tables in **AWS Glue / Amazon S3 Table Buckets** inside a **VPC Service Controls** perimeter—where **Gemini 4 Carbon**'s long-horizon cyber reasoning hydrates the regional cache on the initial time-window scan so iterative pivot queries execute locally at **$0 repeat egress**.
+* **Cross-cloud Customer 360 feature engineering and demand forecasting (`Managed Service for Apache Spark` + `BigQuery AI.FORECAST`):** Process clickstream Iceberg tables from **AWS Glue** alongside subscription cohorts from **Databricks** in **PySpark 2.3** via short-lived vended credentials (`X-Iceberg-Access-Delegation=vended-credentials`), while running zero-shot **TimesFM 2.0 (`AI.FORECAST`)** projections in **BigQuery**.
+* **Regulated clinical and life sciences research collaboration (`OIDC user identity federation`):** Query multi-institution genomics or assay Delta UniForm tables in **Databricks Unity Catalog** alongside clinical outcomes in **BigQuery** while enforcing per-researcher row filters, column masks, and `system.access.audit` lineage via `--federated-catalog-identity-mode="user-identity-federation"`.
+
+### Recommended next steps
+
+1. **Test the multi-model ADK topology locally in 30 seconds:** Clone [`cmanikandan/gcp-borderless-lakehouse-adk`](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk), run `make install && make test && make inspect-agent`, and compare `--model-profile tiered`, `argon`, `carbon`, and `flash` alongside the cache FinOps simulator (`make demo-finops`).
+2. **Run the end-to-end cross-cloud POC:** Provision the AWS Glue, standalone Databricks Unity Catalog, and BigQuery tables (or pass `--glue-only` to test AWS Glue + BigQuery first), inspect `statistics.query.objectStorageStats` and `INFORMATION_SCHEMA.JOBS_BY_PROJECT`, and run `bash infra/teardown_all.sh` when done.
+3. **Evaluate production hardening:** Before moving beyond a POC, consult the official documentation below to configure **Private Cross-Cloud Interconnect**, **VPC Service Controls**, **OIDC user identity federation**, and organization policy checks (`constraints/gcp.restrictNonCmekServices`).
+4. **Join the discussion:** Which remote catalog (**Databricks Unity Catalog**, **AWS Glue**, **Snowflake Horizon**, or **Workday Data Lake**) or **Gemini 4** model profile are you planning to test with BigQuery first? Share your questions, use cases, or benchmarks in the comments below!
 
 ### Helpful documentation and Google Developer Program community resources
 
@@ -371,7 +409,7 @@ Ready to try it out?
 * [Set up a cross-cloud connection to Databricks Unity Catalog](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-databricks)
 * [Set up a cross-cloud connection to AWS Glue Data Catalog](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-aws-glue)
 * [Set up cross-cloud connections to Snowflake Horizon Catalog](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-snowflake) and [Workday Data Lake](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-workday)
-* [Google Agent Development Kit (ADK) BigQuery integration](https://adk.dev/integrations/bigquery/)
+* [Gemini 4 Carbon and Gemini 4 Argon developer guide](https://aistudio.google.com/docs/whats-new-gemini-4-carbon) and [Google Agent Development Kit (ADK) BigQuery integration](https://adk.dev/integrations/bigquery/)
 * [Databricks Unity Catalog documentation](https://docs.databricks.com/en/data-governance/unity-catalog/index.html) and [AWS Glue Apache Iceberg documentation](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-format-iceberg.html)
 
 **Google Developer Program forums & community formatting guides**

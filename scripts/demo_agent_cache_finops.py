@@ -3,8 +3,8 @@
 
 Demonstrates how Google Cloud Borderless Lakehouse's GA Intelligent Caching
 (`statistics.query.objectStorageStats`) transforms cross-platform economics when
-running multi-step Google ADK (`gemini-3.8-flash`) agent investigations across
-AWS Glue (S3) and standalone Databricks Unity Catalog.
+running multi-step Google ADK agent investigations (`gemini-4-argon`, `gemini-4-carbon`,
+and `gemini-3.8-flash`) across AWS Glue (S3) and standalone Databricks Unity Catalog.
 
 Usage:
   uv run python scripts/demo_agent_cache_finops.py
@@ -27,13 +27,13 @@ from lakehouse_agent.cache_telemetry import (
 
 def run_offline_benchmark_showcase() -> None:
     print("=" * 84)
-    print(" Google Cloud Borderless Lakehouse + ADK (gemini-3.8-flash) — FinOps Showcase")
+    print(" Google Cloud Borderless Lakehouse + Tiered Gemini 4 ADK — FinOps Showcase")
     print("=" * 84)
 
     agent = build_lakehouse_agent_system()
-    print(f"\n[1] Verified ADK Root Agent : {agent.name} (model={agent.model})")
+    print(f"\n[1] Verified ADK Coordinator : {agent.name} (model={agent.model})")
     for sub in agent.sub_agents:
-        print(f"    └── Sub-Agent           : {sub.name} (model={sub.model})")
+        print(f"    └── Specialist Sub-Agent : {sub.name} (model={sub.model})")
 
     # Simulated BigQuery Job 1: Initial Cold Cross-Platform Join (0% Cache Hit)
     cold_job_payload = {

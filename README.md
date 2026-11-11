@@ -1,11 +1,11 @@
-# Google Cloud Borderless Lakehouse POC + Google ADK (`gemini-3.8-flash`)
+# Google Cloud Borderless Lakehouse POC + Tiered Gemini 4 ADK (`Argon`, `Carbon` & `3.8 Flash`)
 
 ![Google Cloud Lakehouse cross-cloud architecture overview](docs/images/hero_borderless_lakehouse.png)
 
 [![CI — Borderless Lakehouse ADK Suite](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/actions/workflows/ci.yml/badge.svg)](https://github.com/cmanikandan/gcp-borderless-lakehouse-adk/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Google ADK](https://img.shields.io/badge/Google_ADK-2.13%2B-4285F4)](https://adk.dev/integrations/bigquery/)
-[![Model](https://img.shields.io/badge/Gemini-3.8_Flash-34A853)](https://ai.google.dev/)
+[![Models](https://img.shields.io/badge/Gemini_4-Argon_%7C_Carbon_%7C_3.8_Flash-34A853)](https://aistudio.google.com/docs/whats-new-gemini-4-carbon)
 
 > **Proof-of-Concept (POC) Disclaimer**: This repository is an educational **Proof of Concept (POC)** built from a cloud practitioner's perspective to explore and test cross-cloud lakehouse federation, regional caching, and agentic analytics end to end. It is **not** a drop-in production template. Before deploying to production, always consult the official [**Google Cloud Lakehouse documentation**](https://docs.cloud.google.com/lakehouse/docs/about-cross-cloud-data-access), [**Databricks Unity Catalog documentation**](https://docs.databricks.com/en/data-governance/unity-catalog/index.html), and [**AWS Glue & S3 documentation**](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-format-iceberg.html) for production security hardening, IAM least-privilege policies, networking, and service limits.
 
@@ -19,19 +19,19 @@
 2. **Zero-ETL Cross-Cloud Federated Catalogs (GA)** (`--catalog-type="federated"`): Continuously synchronize Iceberg metadata in the background from **Databricks Unity Catalog**, **AWS Glue Data Catalog** (including Amazon S3 Table Buckets), **Snowflake Horizon Catalog**, and **Workday Data Lake**, making external tables queryable in place without brittle ETL pipelines.
 3. **Intelligent Cross-Cloud Caching (GA)** (`--cross-cloud-cache="enabled"` & `crossCloudCacheOptions`): Opt-in regional block-level Parquet caching inside Google Cloud (`$0` additional Google Cloud fee) keeps active column blocks close to compute—verifying remote metadata and ACLs on every read while slashing repeat cross-cloud egress fees and accelerating subsequent BI and AI queries.
 4. **Unified Governance, Credential Vending & Identity Federation**: Automatic short-lived storage credential vending eliminates static cloud keys on worker clusters, optional **Cross-Cloud Interconnect** and **VPC Service Controls** protect the network perimeter, and **User Identity Federation** propagates end-user OIDC identities into **Databricks Unity Catalog** for row/column enforcement and `system.access.audit` logging.
-5. **Agent-Ready Data Foundation**: Federated tables behave like native tables in BigQuery (including zero-shot time-series forecasting with `AI.FORECAST` / TimesFM 2.0), enabling **Google Agent Development Kit (`google-adk` 2.x)** agents powered by **`gemini-3.8-flash`** to reason across multi-platform datasets while Intelligent Caching absorbs iterative agent query bursts.
+5. **Agent-Ready Data Foundation**: Federated tables behave like native tables in BigQuery (including zero-shot time-series forecasting with `AI.FORECAST` / TimesFM 2.0), enabling **Google Agent Development Kit (`google-adk` 2.x)** multi-agent teams across **Gemini 4 Argon**, **Gemini 4 Carbon**, and **Gemini 3.8 Flash** to reason across multi-platform datasets while Intelligent Caching absorbs iterative agent query bursts.
 
 ---
 
 ## 30-Second Offline Quickstart (Zero Cloud Credentials Needed)
 
-Want to verify the Google ADK 2.x multi-agent topology, unit tests, preflight diagnostics, and Intelligent Cache FinOps simulator locally before provisioning any cloud resources?
+Want to verify the tiered Google ADK 2.x multi-agent topology (`gemini-4-argon` + `gemini-4-carbon` + `gemini-3.8-flash`), unit tests, preflight diagnostics, and Intelligent Cache FinOps simulator locally before provisioning any cloud resources?
 
 ```bash
 make install          # Installs Python 3.11+ environment via uv
 make test             # Runs pytest suite + bash syntax + XML/SVG diagram checks
-make doctor           # Runs local & cloud preflight readiness checks
-make inspect-agent    # Prints the root_agent & sub-agent tool/planner hierarchy
+make doctor           # Validates CLIs, region pairing & Gemini 4 model/decode guardrails
+make inspect-agent    # Prints tiered Gemini 4 Argon / Carbon / 3.8 Flash ADK hierarchy
 make demo-finops      # Simulates Cold vs. Warm cache telemetry & 30-day agentic egress ROI
 ```
 
@@ -67,8 +67,8 @@ gcp-borderless-lakehouse-adk/
 ├── Makefile                                                  # One-command developer workflows (test, doctor, adk-web)
 ├── README.md                                                 # End-to-end setup, testing & teardown guide
 ├── blog/
-│   ├── discuss_google_dev_post.md                            # Self-publishable discuss.google.dev Googler Article
-│   └── medium_blog_post.md                                   # Companion Medium blog post
+│   ├── discuss_google_dev_post.md                            # Google Developer Program forums article
+│   └── medium_blog_post.md                                   # Medium edition
 ├── docs/
 │   ├── diagrams/                                             # Editable XML + vector .svg diagram sources
 │   └── images/                                               # Lossless .png & .jpg docs.cloud.google.com-style diagrams
@@ -99,15 +99,15 @@ gcp-borderless-lakehouse-adk/
 │   ├── cross_cloud_margin_risk_job.py                        # PySpark 2.3 job via Iceberg REST vended credentials
 │   └── submit_managed_spark_batch.sh                         # Serverless Managed Spark submit + optional Cloud NAT
 ├── src/lakehouse_agent/
-│   ├── config.py                                             # Decoupled Vertex (global) & BigQuery (us-east4) config
+│   ├── config.py                                             # Tiered Gemini 4 Argon/Carbon/3.8 Flash & region config
 │   ├── catalog_discovery.py                                  # BigLake Iceberg REST API 4-part table/snapshot discovery
 │   ├── cache_telemetry.py                                    # Parses objectStorageStats (supports job_id="LATEST")
-│   └── agent.py                                              # Google ADK 2.x + gemini-3.8-flash multi-agent copilot
+│   └── agent.py                                              # Google ADK 2.x multi-model Coordinator & sub-agents
 ├── scripts/
 │   ├── preflight_doctor.py                                   # Local & cloud readiness diagnostics
 │   ├── run_cross_cloud_join.sh                               # Cold vs. Warm SQL join runner (--nouse_cache / --glue-only)
 │   ├── demo_agent_cache_finops.py                            # Offline & live job cache FinOps analyzer
-│   └── run_agent_cli.py                                      # Headless multi-agent CLI runner & event trace printer
+│   └── run_agent_cli.py                                      # Headless multi-agent CLI runner (--model-profile)
 └── tests/                                                    # Pytest suite (ADK wiring, REST discovery, FinOps, doctor)
 ```
 
@@ -252,22 +252,30 @@ ENSURE_CLOUD_NAT=true bash spark/submit_managed_spark_batch.sh
 
 ---
 
-### Phase 5: Launch the Agentic Layer (`google-adk` 2.x + `gemini-3.8-flash`)
+### Phase 5: Launch the Tiered Agentic Layer (`google-adk` 2.x + Gemini 4 `Argon`, `Carbon` & `3.8 Flash`)
 
 ![Multi-agent cross-cloud analytics and cost telemetry with Google ADK](docs/images/adk_multi_agent_cache_sequence.png)
+
+By default (`MODEL_PROFILE=tiered`), [`src/lakehouse_agent/agent.py`](src/lakehouse_agent/agent.py) pairs each specialist agent with the ideal Gemini model and thinking depth (with explicit `MAX_OUTPUT_TOKENS=8192` decode caps for Gemini 4's 1M-token output window):
+
+| Agent Role | Default Model (`tiered`) | `ThinkingLevel` | Responsibility |
+| :--- | :--- | :--- | :--- |
+| **`lakehouse_practitioner_copilot`** | **`gemini-4-argon`** | `LOW` | Fast frontier intent decomposition, routing & executive synthesis |
+| **`cross_cloud_supply_chain_analyst`** | **`gemini-4-carbon`** | `HIGH` | Deep 4-part cross-cloud SQL synthesis, edge-case checks & `AI.FORECAST` |
+| **`finops_cache_telemetry_advisor`** | **`gemini-3.8-flash`** | `LOW` | High-speed `objectStorageStats` inspection (`job_id="LATEST"`) & CLI blueprints |
 
 ```mermaid
 sequenceDiagram
     actor User as Cloud Practitioner
-    participant Root as lakehouse_practitioner_copilot<br/>(gemini-3.8-flash · ThinkingLevel.LOW)
-    participant Analyst as cross_cloud_supply_chain_analyst<br/>(ThinkingLevel.MEDIUM)
+    participant Root as lakehouse_practitioner_copilot<br/>(gemini-4-argon · ThinkingLevel.LOW)
+    participant Analyst as cross_cloud_supply_chain_analyst<br/>(gemini-4-carbon · ThinkingLevel.HIGH)
     participant BQ as BigQuery + Regional Cache (us-east4)
-    participant FinOps as finops_cache_telemetry_advisor<br/>(ThinkingLevel.MEDIUM)
+    participant FinOps as finops_cache_telemetry_advisor<br/>(gemini-3.8-flash · ThinkingLevel.LOW)
 
     User->>Root: "Which US-NORTHEAST categories have the highest margin exposure, and did we hit cache?"
     Root->>Analyst: Delegate cross-platform supply-chain investigation
     Analyst->>BQ: discover_federated_tables() via BigLake Iceberg REST API
-    Analyst->>BQ: execute_sql(4-part join, label workload=borderless-lakehouse-adk)
+    Analyst->>BQ: execute_sql(4-part join, label llm_model=gemini-4-carbon)
     BQ-->>Analyst: Apparel ($24,412) & Electronics ($7,740) served from warm block cache
     Root->>FinOps: Delegate cache telemetry check
     FinOps->>BQ: inspect_bigquery_job_cache_stats(job_id="LATEST")
@@ -278,12 +286,14 @@ sequenceDiagram
 ```bash
 cp .env.example .env
 # Edit .env to set PROJECT_ID and GOOGLE_API_KEY (or GOOGLE_GENAI_USE_VERTEXAI=TRUE + GOOGLE_CLOUD_LOCATION=global)
+# Optional: set MODEL_PROFILE=tiered|argon|carbon|flash
 
 # Launch the interactive Google ADK Web UI:
 make adk-web
 
-# Or run a single prompt headlessly from your terminal with full tool-call trace:
+# Or run headlessly from your terminal (with optional --model-profile override):
 uv run python scripts/run_agent_cli.py \
+  --model-profile tiered \
   --prompt "Which US-NORTHEAST categories have the highest gross margin exposure, and what was the cache hit ratio on our latest BigQuery job?"
 ```
 
@@ -334,6 +344,7 @@ Finally, remove `gcp-lakehouse-federation-sp` under **Settings -> Identity and a
 * [Set Up Cross-Cloud Connection to AWS Glue Data Catalog](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-aws-glue)
 * [Set Up Cross-Cloud Connection to Snowflake Horizon Catalog](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-snowflake)
 * [Set Up Cross-Cloud Connection to Workday Data Lake](https://docs.cloud.google.com/lakehouse/docs/set-up-cross-cloud-connection-workday)
+* [Gemini 4 Carbon & Gemini 4 Argon Developer Guide](https://aistudio.google.com/docs/whats-new-gemini-4-carbon)
 * [Databricks Unity Catalog Official Documentation](https://docs.databricks.com/en/data-governance/unity-catalog/index.html)
 * [AWS Glue & Apache Iceberg Official Documentation](https://docs.aws.amazon.com/glue/latest/dg/aws-glue-programming-etl-format-iceberg.html)
 * [Google Agent Development Kit (ADK) — BigQuery Integration](https://adk.dev/integrations/bigquery/)

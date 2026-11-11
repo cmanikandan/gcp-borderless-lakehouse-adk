@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 """Programmatic Google ADK 2.x CLI Runner (`run_agent_cli.py`).
 
-Streams `gemini-3.8-flash` thoughts, sub-agent transfers (`transfer_to_agent`),
-tool invocations (`discover_federated_tables`, `execute_sql`, `inspect_bigquery_job_cache_stats`),
-and synthesized responses right in your terminal using `google.adk.runners.InMemoryRunner`.
+Streams thoughts, sub-agent transfers (`transfer_to_agent`), tool invocations
+(`discover_federated_tables`, `execute_sql`, `inspect_bigquery_job_cache_stats`),
+and synthesized responses right in your terminal across tiered Gemini models
+(`gemini-4-argon`, `gemini-4-carbon`, and `gemini-3.8-flash`).
 
 Usage:
-  # Inspect the wired multi-agent graph & tools offline (zero credentials needed):
+  # Inspect the wired multi-agent graph & per-role Gemini models offline:
   uv run python scripts/run_agent_cli.py --inspect-topology
 
-  # Run a live end-to-end prompt against Gemini 3.8 Flash + BigQuery:
+  # Switch model profile on the fly (tiered | argon | carbon | flash):
+  uv run python scripts/run_agent_cli.py --inspect-topology --model-profile carbon
+
+  # Run a live end-to-end prompt against your Lakehouse:
   uv run python scripts/run_agent_cli.py --prompt "Which US-NORTHEAST categories have the highest margin exposure, and what was our cross-cloud cache hit ratio?"
 """
 
@@ -23,29 +27,36 @@ from google.adk.runners import InMemoryRunner
 from google.genai import types
 
 from lakehouse_agent.agent import BIGQUERY_ALLOWED_TOOLS, build_lakehouse_agent_system
-from lakehouse_agent.config import load_settings
+from lakehouse_agent.config import MODEL_PROFILES, load_settings
 
 
-def print_agent_topology() -> None:
-    cfg = load_settings()
+def print_agent_topology(model_profile: str | None = None) -> None:
+    cfg = load_settings(model_profile_override=model_profile)
     root = build_lakehouse_agent_system(cfg)
-    print("=" * 84)
-    print(" Google ADK 2.x Multi-Agent Topology Inspection")
-    print("=" * 84)
-    print(f" Root Orchestrator : {root.name} (model={root.model})")
+    root_think = root.planner.thinking_config.thinking_level.name
+    max_tok = root.generate_content_config.max_output_tokens
+    print("=" * 88)
+    print(f" Google ADK 2.x Multi-Agent Topology (profile='{cfg.model_profile}', max_output_tokens={max_tok})")
+    print("=" * 88)
+    print(f" Root Orchestrator : {root.name} (model={root.model}, thinking={root_think})")
     for sub in root.sub_agents:
-        print(f"   ├── Sub-Agent   : {sub.name} (model={sub.model})")
+        sub_think = sub.planner.thinking_config.thinking_level.name
+        print(f"   ├── Sub-Agent   : {sub.name} (model={sub.model}, thinking={sub_think})")
         for tool in sub.tools:
             tname = getattr(tool, "__name__", tool.__class__.__name__)
             if tname == "BigQueryToolset":
                 print(f"   │     └── Tool  : BigQueryToolset (filter={BIGQUERY_ALLOWED_TOOLS})")
             else:
                 print(f"   │     └── Tool  : {tname}")
-    print("=" * 84)
+    print("=" * 88)
 
 
-async def run_live_prompt(prompt: str, user_token: str | None = None) -> None:
-    cfg = load_settings()
+async def run_live_prompt(
+    prompt: str,
+    user_token: str | None = None,
+    model_profile: str | None = None,
+) -> None:
+    cfg = load_settings(model_profile_override=model_profile)
     agent = build_lakehouse_agent_system(cfg, user_access_token=user_token)
     runner = InMemoryRunner(agent=agent, app_name="borderless-lakehouse-poc")
     session = await runner.session_service.create_session(
@@ -54,7 +65,7 @@ async def run_live_prompt(prompt: str, user_token: str | None = None) -> None:
     )
 
     content = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-    print(f"\nUser > {prompt}\n" + "-" * 84)
+    print(f"\nUser > {prompt}\n" + "-" * 88)
 
     async for event in runner.run_async(
         user_id="cloud-practitioner",
@@ -85,7 +96,13 @@ def main() -> int:
     parser.add_argument(
         "--inspect-topology",
         action="store_true",
-        help="Print the wired multi-agent graph and tool guardrails offline",
+        help="Print the wired multi-agent graph, per-role Gemini models, and tool guardrails offline",
+    )
+    parser.add_argument(
+        "--model-profile",
+        choices=sorted(MODEL_PROFILES.keys()),
+        default=None,
+        help="Override model routing profile (tiered | argon | carbon | flash)",
     )
     parser.add_argument(
         "--prompt",
@@ -103,10 +120,16 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.inspect_topology:
-        print_agent_topology()
+        print_agent_topology(model_profile=args.model_profile)
         return 0
 
-    asyncio.run(run_live_prompt(args.prompt, user_token=args.user_access_token))
+    asyncio.run(
+        run_live_prompt(
+            args.prompt,
+            user_token=args.user_access_token,
+            model_profile=args.model_profile,
+        )
+    )
     return 0
 
 

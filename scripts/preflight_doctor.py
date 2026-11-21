@@ -2,8 +2,8 @@
 """Zero-Mutation Cloud Readiness & Guardrail Validator (`preflight_doctor.py`).
 
 Checks local developer CLIs, environment alignment (BigQuery `us-east4` vs. AWS `us-east-1`
-co-location, Vertex AI / Agent Platform `global` endpoint separation, and Gemini 4 / 3.8
-model tiering + `max_output_tokens` decode guardrails), and—when `--check-cloud` is passed—
+co-location, Vertex AI / Agent Platform `global` endpoint separation, and Gemini 4 model
+tiering + `max_output_tokens` + `BQ_WRITE_MODE` guardrails), and—when `--check-cloud` is passed—
 live Google Cloud org policy guardrails such as `constraints/gcp.restrictNonCmekServices`.
 
 Usage:
@@ -81,7 +81,7 @@ def check_local_environment() -> list[CheckResult]:
             CheckResult(
                 "Gemini Global vs. BigQuery Regional",
                 "WARN",
-                f"GOOGLE_CLOUD_LOCATION='{cfg.vertex_location}'. Use 'global' for Gemini 4 Argon/Carbon & 3.8 Flash "
+                f"GOOGLE_CLOUD_LOCATION='{cfg.vertex_location}'. Use 'global' for Gemini 4 models "
                 "to avoid the 10% regional endpoint premium while keeping BQ_LOCATION='us-east4'.",
             )
         )
@@ -106,7 +106,7 @@ def check_local_environment() -> list[CheckResult]:
             CheckResult(
                 "Gemini Model Lineup",
                 "FAIL",
-                f"Retired Gemini 2.5 model detected ({retired}); migrate to gemini-4-argon, gemini-4-carbon, or gemini-3.8-flash.",
+                f"Retired Gemini 2.5 model detected ({retired}); migrate to gemini-4-neon, gemini-4-carbon, gemini-4-hydrogen, or gemini-4-argon.",
             )
         )
     elif unknown:
@@ -120,11 +120,11 @@ def check_local_environment() -> list[CheckResult]:
     else:
         results.append(
             CheckResult(
-                "Gemini Model Lineup & Output Cap",
+                "Gemini 4 Lineup & Guardrails",
                 "PASS",
                 f"Profile='{cfg.model_profile}' (Coord={cfg.resolved_coordinator_model}, "
                 f"Analyst={cfg.resolved_analyst_model}, FinOps={cfg.resolved_finops_model}, "
-                f"max_output_tokens={cfg.max_output_tokens}).",
+                f"write_mode={cfg.bq_write_mode}, max_output_tokens={cfg.max_output_tokens}).",
             )
         )
 
@@ -179,7 +179,7 @@ def check_live_cloud_guardrails(project_id: str) -> list[CheckResult]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Borderless Lakehouse POC Preflight Doctor")
+    parser = argparse.ArgumentParser(description="Google Cloud Lakehouse POC Preflight Doctor")
     parser.add_argument(
         "--check-cloud",
         action="store_true",
@@ -193,7 +193,7 @@ def main() -> int:
         checks.extend(check_live_cloud_guardrails(cfg.project_id))
 
     print("=" * 84)
-    print(" Google Cloud Borderless Lakehouse POC — Preflight Doctor")
+    print(" Google Cloud Lakehouse POC — Preflight Doctor")
     print("=" * 84)
     has_fail = False
     for item in checks:

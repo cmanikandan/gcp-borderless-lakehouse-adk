@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Interactive CLI Demo: Cold vs. Warm Intelligent Cache Telemetry & Agentic FinOps.
 
-Demonstrates how Google Cloud Borderless Lakehouse's GA Intelligent Caching
+Demonstrates how Google Cloud Lakehouse's GA Cross-Cloud Caching
 (`statistics.query.objectStorageStats`) transforms cross-platform economics when
-running multi-step Google ADK agent investigations (`gemini-4-argon`, `gemini-4-carbon`,
-and `gemini-3.8-flash`) across AWS Glue (S3) and standalone Databricks Unity Catalog.
+running multi-step Google ADK 2.15+ agent investigations (`gemini-4-neon`, `gemini-4-carbon`,
+and `gemini-4-hydrogen`) across AWS Glue (S3 / S3 Tables) and standalone Databricks Unity Catalog.
 
 Usage:
   uv run python scripts/demo_agent_cache_finops.py

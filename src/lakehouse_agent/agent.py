@@ -1,33 +1,40 @@
-"""Multi-Agent Google ADK 2.x Suite for Google Cloud Borderless Lakehouse POC.
+"""Multi-Agent Google ADK 2.15+ Suite for Google Cloud Lakehouse POC.
 
-Implements heterogeneous Gemini model routing across roles (`MODEL_PROFILE=tiered`):
-- `lakehouse_practitioner_copilot` -> `gemini-4-argon` (`ThinkingLevel.LOW`) for fast
-  frontier intent decomposition, routing, and concise synthesis.
+Implements heterogeneous Gemini 4 model routing across specialist roles (`MODEL_PROFILE=tiered`):
+- `lakehouse_practitioner_copilot` -> `gemini-4-neon` (`ThinkingLevel.LOW`) for fast
+  frontier intent decomposition, routing, and executive-ready synthesis.
 - `cross_cloud_supply_chain_analyst` -> `gemini-4-carbon` (`ThinkingLevel.HIGH`) for
-  deep multi-table SQL reasoning, schema verification across BigQuery + Databricks Unity
-  Catalog + AWS Glue, and zero-shot TimesFM `AI.FORECAST` analysis.
-- `finops_cache_telemetry_advisor` -> `gemini-3.8-flash` (`ThinkingLevel.LOW`) for rapid,
-  cost-efficient `objectStorageStats` inspection and CLI blueprint generation.
+  deep multi-catalog SQL reasoning across BigQuery + standalone Databricks Unity Catalog
+  + AWS Glue, equipped with ADK 2.15's pre-packaged `bigquery-ai-ml` & `bigquery-graph`
+  skills (`AI.FORECAST`, `AI.GENERATE`, `AI.DETECT_ANOMALIES`, `AI.KEY_DRIVERS`, GQL).
+- `finops_cache_telemetry_advisor` -> `gemini-4-hydrogen` (`ThinkingLevel.LOW`) for rapid,
+  Flash-tier `objectStorageStats` inspection, Project Caps guidance, and CLI blueprints.
 
-Also supports uniform single-model profiles (`argon`, `carbon`, `flash`) and explicit
-per-turn `max_output_tokens` guardrails for Gemini 4's 1M-token decode window.
+Also supports `argon-tiered` (`gemini-4-argon` + `gemini-4-carbon` + `gemini-3.8-flash`),
+uniform profiles (`neon`, `carbon`, `argon`, `hydrogen`, `flash`), session-isolated
+`WriteMode.PROTECTED` (preventing permanent table mutation while unlocking anomaly/driver
+tools), and optional `BigQueryAgentAnalyticsPlugin` streaming via `build_lakehouse_app()`.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import google.auth
 from google.adk.agents import Agent
+from google.adk.apps import App
 from google.adk.integrations.bigquery import (
     BigQueryCredentialsConfig,
     BigQueryToolset,
+    get_bigquery_skill,
 )
 from google.adk.integrations.bigquery.config import (
     BigQueryToolConfig,
     WriteMode,
 )
 from google.adk.planners import BuiltInPlanner
+from google.adk.tools.skill_toolset import SkillToolset
 from google.auth.exceptions import DefaultCredentialsError
 from google.genai import types
 from google.oauth2.credentials import Credentials
@@ -40,9 +47,10 @@ from lakehouse_agent.cache_telemetry import (
 from lakehouse_agent.catalog_discovery import discover_federated_catalog_tables
 from lakehouse_agent.config import LakehouseSettings, load_settings, sanitize_bq_label
 
-# Explicit allowlist compatible with WriteMode.BLOCKED & zero extra optional dependencies
-# (`execute_sql` + `forecast` work directly on 4-part federated Iceberg tables!)
-BIGQUERY_ALLOWED_TOOLS: list[str] = [
+logger = logging.getLogger(__name__)
+
+# Strictly SELECT-only tool allowlist when BQ_WRITE_MODE="blocked"
+BIGQUERY_READONLY_TOOLS: list[str] = [
     "execute_sql",
     "forecast",
     "list_dataset_ids",
@@ -52,19 +60,51 @@ BIGQUERY_ALLOWED_TOOLS: list[str] = [
     "get_job_info",
 ]
 
+# Session-protected allowlist (default BQ_WRITE_MODE="protected"): permanent BigQuery and
+# federated Iceberg tables cannot be modified (dry-run verified), while anonymous session
+# temp tables unlock `detect_anomalies` and `analyze_contribution` alongside `forecast`.
+BIGQUERY_PROTECTED_TOOLS: list[str] = [
+    *BIGQUERY_READONLY_TOOLS,
+    "detect_anomalies",
+    "analyze_contribution",
+]
+
+# Backwards-compatible alias
+BIGQUERY_ALLOWED_TOOLS = BIGQUERY_PROTECTED_TOOLS
+
+
+def resolve_write_mode_and_tools(settings: LakehouseSettings) -> tuple[WriteMode, list[str]]:
+    """Map `settings.bq_write_mode` to ADK WriteMode and compatible tool filter."""
+    if settings.bq_write_mode.strip().lower() == "blocked":
+        return WriteMode.BLOCKED, list(BIGQUERY_READONLY_TOOLS)
+    return WriteMode.PROTECTED, list(BIGQUERY_PROTECTED_TOOLS)
+
+
+def build_bigquery_skills_toolset() -> SkillToolset:
+    """Load ADK 2.15's official BigQuery AI/ML & Graph (GQL) agent skills."""
+    return SkillToolset(
+        skills=[
+            get_bigquery_skill("bigquery-ai-ml"),
+            get_bigquery_skill("bigquery-graph"),
+        ]
+    )
+
 
 def build_bigquery_toolset(
     settings: LakehouseSettings,
     user_access_token: str | None = None,
 ) -> BigQueryToolset:
-    """Instantiate a read-only BigQueryToolset with FinOps caps & optional user OAuth token.
+    """Instantiate a guarded BigQueryToolset with FinOps caps & optional user OAuth token.
 
     When `user_access_token` (or OAuth Client ID/Secret) is supplied, BigQuery executes
     queries as the authenticated end user—allowing Google Cloud Lakehouse to propagate
-    end-user OIDC tokens to Databricks Unity Catalog (`user-identity-federation` mode).
+    end-user OIDC tokens to Databricks Unity Catalog (`user-identity-federation` mode)
+    and enforce Lakehouse Iceberg row-level and column-level security policies.
     """
+    write_mode, allowed_tools = resolve_write_mode_and_tools(settings)
+
     tool_config = BigQueryToolConfig(
-        write_mode=WriteMode.BLOCKED,
+        write_mode=write_mode,
         location=settings.gcp_region,
         compute_project_id=settings.project_id,
         default_project_id=settings.project_id,
@@ -96,14 +136,14 @@ def build_bigquery_toolset(
             creds_config = None
 
     return BigQueryToolset(
-        tool_filter=BIGQUERY_ALLOWED_TOOLS,
+        tool_filter=allowed_tools,
         credentials_config=creds_config,
         bigquery_tool_config=tool_config,
     )
 
 
 def _analyst_thinking_level(model_id: str) -> types.ThinkingLevel:
-    """Select deeper reasoning on Gemini 4 Carbon while keeping Argon/Flash responsive."""
+    """Select deeper reasoning on Gemini 4 Carbon while keeping Neon/Argon/Hydrogen responsive."""
     if "carbon" in model_id.lower():
         return types.ThinkingLevel.HIGH
     return types.ThinkingLevel.MEDIUM
@@ -113,9 +153,10 @@ def build_lakehouse_agent_system(
     settings: LakehouseSettings | None = None,
     user_access_token: str | None = None,
 ) -> Agent:
-    """Build the multi-model Google ADK 2.x system for Borderless Lakehouse."""
+    """Build the multi-model Google ADK 2.15+ system for Google Cloud Lakehouse."""
     cfg = settings or load_settings()
     bq_toolset = build_bigquery_toolset(cfg, user_access_token=user_access_token)
+    bq_skills = build_bigquery_skills_toolset()
 
     coord_model = cfg.resolved_coordinator_model
     analyst_model = cfg.resolved_analyst_model
@@ -165,25 +206,28 @@ def build_lakehouse_agent_system(
         planner=analyst_planner,
         generate_content_config=bounded_gen_config,
         description=(
-            "Discovers federated Iceberg schemas and executes read-only cross-platform SQL joins "
-            "and TimesFM forecasts across BigQuery, standalone Databricks Unity Catalog, and AWS Glue."
+            "Discovers 4-part federated Iceberg schemas and executes session-protected cross-cloud "
+            "SQL joins, TimesFM forecasts (`AI.FORECAST`), anomaly detection (`AI.DETECT_ANOMALIES`), "
+            "and in-warehouse Gemini 4 enrichment (`AI.GENERATE`) across BigQuery, standalone "
+            "Databricks Unity Catalog, and AWS Glue."
         ),
-        instruction=f"""You are a Google Cloud Lakehouse Data Analyst sub-agent.
-You query distributed datasets in place without moving data:
+        instruction=f"""You are a Google Cloud Lakehouse Data & AI Analyst sub-agent.
+You query distributed datasets in place without building ETL pipelines:
 1. Native BigQuery dataset (3-part path):
    - `{cfg.project_id}.{cfg.native_bq_dataset}.orders`
 2. Standalone Databricks Unity Catalog (4-part federated path):
    - `{cfg.project_id}.{cfg.unity_catalog_id}.supply_chain.supplier_risk_scores`
    - `{cfg.project_id}.{cfg.unity_catalog_id}.supply_chain.sku_margins`
-3. AWS Glue Data Catalog on Amazon S3 (4-part federated path):
+3. AWS Glue Data Catalog on Amazon S3 / S3 Tables (4-part federated path):
    - `{cfg.project_id}.{cfg.glue_catalog_id}.fulfillment.shipment_events`
 
 Always:
-- Call `discover_federated_tables` when asked to explore unknown schemas/tables inside `{cfg.unity_catalog_id}` or `{cfg.glue_catalog_id}` (standard `list_dataset_ids` only sees 3-part BigQuery datasets).
+- Call `discover_federated_tables` when asked to explore unknown schemas/tables inside `{cfg.unity_catalog_id}` or `{cfg.glue_catalog_id}` (standard `list_dataset_ids` only enumerates 3-part BigQuery datasets).
 - Use 4-part backticked table identifiers (`project.catalog.namespace.table`) in `execute_sql`.
-- Push down filters (`WHERE`) and explicit column projections (never `SELECT *`) so Lakehouse Intelligent Caching caches only needed Parquet column blocks.
+- Push down filters (`WHERE`) and explicit column projections (never `SELECT *`) so Lakehouse cross-cloud caching stores only active Parquet column blocks.
+- Consult your `bigquery-ai-ml` and `bigquery-graph` skills when writing `AI.FORECAST`, `AI.GENERATE` (`endpoint => 'gemini-4-hydrogen'`), `AI.IF`, `AI.CLASSIFY`, or GQL queries.
 """,
-        tools=[bq_toolset, discover_federated_tables],
+        tools=[bq_toolset, bq_skills, discover_federated_tables],
     )
 
     finops_cache_advisor = Agent(
@@ -192,16 +236,16 @@ Always:
         planner=finops_planner,
         generate_content_config=bounded_gen_config,
         description=(
-            "Audits Google Cloud Lakehouse Cross-Cloud Intelligent Caching performance "
-            "(`cacheBytesRead` vs `objectStorageBytesRead`), calculates avoided egress costs, "
-            "and generates GA `gcloud biglake` and `bq mk --connection` CLI blueprints."
+            "Audits Google Cloud Lakehouse Cross-Cloud Caching performance (`cacheBytesRead` vs "
+            "`objectStorageBytesRead`), calculates avoided egress fees, advises on BigQuery Project "
+            "Caps & Knowledge Catalog governance, and generates GA CLI blueprints."
         ),
-        instruction="""You are a Cloud FinOps & Lakehouse Practitioner sub-agent.
+        instruction="""You are a Cloud FinOps & Lakehouse Governance sub-agent.
 Use your tools to:
 - Inspect BigQuery job telemetry (`inspect_bigquery_job_cache_stats`, passing `job_id='LATEST'` when auditing the most recent SQL query) for `objectStorageStats` (`cacheBytesRead` vs `objectStorageBytesRead`).
-- Quantify monthly cross-cloud egress savings (`simulate_agentic_burst_finops`) for multi-step AI agent workloads.
+- Quantify monthly cross-cloud egress savings (`simulate_agentic_burst_finops`) for iterative multi-agent SQL loops.
 - Generate exact GA CLI commands (`get_federated_catalog_cli_blueprint`) for standalone Databricks Unity Catalog (`unity`), AWS Glue (`glue`), or BigQuery Cross-Cloud Connections (`bq-connection`).
-Highlight when 0% cache hit indicates `--cross-cloud-cache=disabled` or `constraints/gcp.restrictNonCmekServices`.
+- Highlight when 0% cache hit indicates `--cross-cloud-cache=disabled` or `constraints/gcp.restrictNonCmekServices`, and recommend pairing Cross-Cloud Caching (bounds storage egress) with BigQuery Project Caps (bounds slot concurrency in shared Enterprise reservations).
 """,
         tools=[
             inspect_bigquery_job_cache_stats,
@@ -217,11 +261,11 @@ Highlight when 0% cache hit indicates `--cross-cloud-cache=disabled` or `constra
         generate_content_config=bounded_gen_config,
         description=(
             "Cloud Practitioner POC Copilot orchestrating zero-ETL cross-platform analytics "
-            "(BigQuery + Databricks Unity Catalog + AWS Glue) and Intelligent Caching FinOps."
+            "(BigQuery + Databricks Unity Catalog + AWS Glue), BigQuery AI, and Cross-Cloud Caching FinOps."
         ),
-        instruction="""You are a Cloud Practitioner Copilot for the Google Cloud Borderless Lakehouse POC.
-Route schema discovery and analytical SQL / forecasting questions across BigQuery, standalone
-Databricks Unity Catalog, and AWS Glue to `cross_cloud_supply_chain_analyst`.
+        instruction="""You are a Cloud Practitioner Copilot for the Google Cloud Lakehouse POC.
+Route schema discovery, cross-platform SQL joins, forecasting, anomaly detection, and BigQuery AI
+questions across BigQuery, standalone Databricks Unity Catalog, and AWS Glue to `cross_cloud_supply_chain_analyst`.
 Route cache hit telemetry audits (`job_id='LATEST'`), egress cost simulations, and catalog/connection
 CLI requests to `finops_cache_telemetry_advisor`.
 Synthesize clear, concise, actionable answers backed by SQL metrics and cache FinOps telemetry.
@@ -231,5 +275,39 @@ Synthesize clear, concise, actionable answers backed by SQL metrics and cache Fi
     return orchestrator
 
 
-# Export `root_agent` for seamless `adk web src` and `adk run src/lakehouse_agent` execution
+def build_lakehouse_app(
+    settings: LakehouseSettings | None = None,
+    user_access_token: str | None = None,
+) -> App:
+    """Wrap the multi-agent system in an ADK `App` with optional BigQuery Agent Analytics streaming."""
+    cfg = settings or load_settings()
+    agent = build_lakehouse_agent_system(cfg, user_access_token=user_access_token)
+    plugins: list[Any] = []
+    if cfg.enable_bq_agent_analytics:
+        try:
+            from google.adk.plugins.bigquery_agent_analytics_plugin import (
+                BigQueryAgentAnalyticsPlugin,
+            )
+
+            plugins.append(
+                BigQueryAgentAnalyticsPlugin(
+                    project_id=cfg.project_id,
+                    dataset_id=cfg.bq_agent_analytics_dataset,
+                )
+            )
+        except ImportError:
+            logger.warning(
+                "ENABLE_BQ_AGENT_ANALYTICS=true, but `google-adk[bigquery-analytics]` is not installed. "
+                "Run `uv sync --extra observability` to stream ADK events to BigQuery."
+            )
+
+    return App(
+        name="borderless_lakehouse_poc",
+        root_agent=agent,
+        plugins=plugins,
+    )
+
+
+# Export both `root_agent` and `app` for `adk web src` and `adk run src/lakehouse_agent`
 root_agent = build_lakehouse_agent_system()
+app = build_lakehouse_app()

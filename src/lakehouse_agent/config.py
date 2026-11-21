@@ -10,15 +10,21 @@ from dotenv import load_dotenv
 
 MODEL_PROFILES: dict[str, tuple[str, str, str]] = {
     # (coordinator_model, analyst_model, finops_model)
-    "tiered": ("gemini-4-argon", "gemini-4-carbon", "gemini-3.8-flash"),
-    "argon": ("gemini-4-argon", "gemini-4-argon", "gemini-4-argon"),
+    # Default Nov 2026 Gemini 4 triad: Neon (fast frontier synthesis) + Carbon (deep SQL/AI) + Hydrogen (Flash-tier telemetry)
+    "tiered": ("gemini-4-neon", "gemini-4-carbon", "gemini-4-hydrogen"),
+    "argon-tiered": ("gemini-4-argon", "gemini-4-carbon", "gemini-3.8-flash"),
+    "neon": ("gemini-4-neon", "gemini-4-neon", "gemini-4-neon"),
     "carbon": ("gemini-4-carbon", "gemini-4-carbon", "gemini-4-carbon"),
+    "argon": ("gemini-4-argon", "gemini-4-argon", "gemini-4-argon"),
+    "hydrogen": ("gemini-4-hydrogen", "gemini-4-hydrogen", "gemini-4-hydrogen"),
     "flash": ("gemini-3.8-flash", "gemini-3.8-flash", "gemini-3.8-flash"),
 }
 
 SUPPORTED_GEMINI_MODELS: frozenset[str] = frozenset(
     {
+        "gemini-4-neon",
         "gemini-4-carbon",
+        "gemini-4-hydrogen",
         "gemini-4-argon",
         "gemini-3.8-flash",
         "gemini-3.8-live-extended-thinking",
@@ -34,11 +40,11 @@ def sanitize_bq_label(value: str) -> str:
 
 @dataclass(frozen=True)
 class LakehouseSettings:
-    """Immutable runtime settings for Lakehouse cross-cloud federation and ADK agents.
+    """Immutable runtime settings for Google Cloud Lakehouse federation and ADK 2.15+ agents.
 
-    Supports heterogeneous per-role Gemini model routing (`model_profile="tiered"` uses
-    `gemini-4-argon` for fast coordination, `gemini-4-carbon` for deep cross-cloud SQL &
-    margin-risk synthesis, and `gemini-3.8-flash` for high-throughput FinOps telemetry)
+    Supports heterogeneous per-role Gemini 4 model routing (`model_profile="tiered"` uses
+    `gemini-4-neon` for fast frontier orchestration, `gemini-4-carbon` for deep cross-cloud
+    SQL & BigQuery AI synthesis, and `gemini-4-hydrogen` for high-throughput FinOps telemetry)
     as well as uniform single-model overrides via `gemini_model` or `MODEL_PROFILE`.
     """
 
@@ -51,6 +57,9 @@ class LakehouseSettings:
     analyst_model: str | None = None
     finops_model: str | None = None
     max_output_tokens: int = 8192  # Caps Gemini 4's 1M-token decode window per turn
+    bq_write_mode: str = "protected"  # "protected" (session temp tables only) or "blocked"
+    enable_bq_agent_analytics: bool = False  # Streams ADK events to BigQuery when True
+    bq_agent_analytics_dataset: str = "commerce_core"
     unity_catalog_id: str = "dbx_unity_merch"
     glue_catalog_id: str = "aws_glue_logistics"
     native_bq_dataset: str = "commerce_core"
@@ -113,6 +122,12 @@ def load_settings(
         or os.environ.get("MODEL_PROFILE")
         or "tiered"
     ).strip().lower()
+    write_mode = os.environ.get("BQ_WRITE_MODE", "protected").strip().lower()
+    enable_analytics = os.environ.get("ENABLE_BQ_AGENT_ANALYTICS", "false").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
 
     return LakehouseSettings(
         project_id=project_id,
@@ -124,6 +139,9 @@ def load_settings(
         analyst_model=os.environ.get("ANALYST_MODEL") or None,
         finops_model=os.environ.get("FINOPS_MODEL") or None,
         max_output_tokens=int(os.environ.get("MAX_OUTPUT_TOKENS", "8192")),
+        bq_write_mode=write_mode,
+        enable_bq_agent_analytics=enable_analytics,
+        bq_agent_analytics_dataset=os.environ.get("BQ_AGENT_ANALYTICS_DATASET", "commerce_core"),
         unity_catalog_id=os.environ.get("UNITY_FED_CATALOG_ID", "dbx_unity_merch"),
         glue_catalog_id=os.environ.get("GLUE_CATALOG_ID", "aws_glue_logistics"),
         native_bq_dataset=os.environ.get("NATIVE_BQ_DATASET", "commerce_core"),

@@ -1,10 +1,14 @@
 -- =============================================================================
--- Fleet-Wide Cross-Cloud Intelligent Caching & AI Agent FinOps Audit (BigQuery)
+-- Fleet-Wide Cross-Cloud Caching & AI Agent FinOps Audit (BigQuery)
 --
 -- Queries `INFORMATION_SCHEMA.JOBS_BY_PROJECT` using the GA `object_storage_stats`
 -- repeated record (`ARRAY<STRUCT<cloud_provider, object_storage_bytes_read, cache_bytes_read>>`)
--- paired with our Google ADK `workload` job label (`borderless-lakehouse-adk`).
--- (Swap `JOBS_BY_PROJECT` -> `JOBS_BY_ORGANIZATION` for org-wide FinOps dashboards.)
+-- paired with our Google ADK `workload` and `llm_model` job labels.
+--
+-- Production Tip (Nov 2026 GA): Pair Cross-Cloud Caching (which bounds cloud
+-- storage egress) with BigQuery Project Caps (`max_slots` and concurrency caps
+-- per project inside Enterprise / Enterprise Plus reservations) so exploratory
+-- AI agents never starve executive BI dashboards.
 -- =============================================================================
 SELECT
   DATE(j.creation_time) AS query_date,
@@ -13,6 +17,10 @@ SELECT
     (SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'workload'),
     'ad-hoc-or-bi'
   ) AS workload_type,
+  COALESCE(
+    (SELECT l.value FROM UNNEST(j.labels) AS l WHERE l.key = 'llm_model'),
+    'human-sql'
+  ) AS agent_model,
   COUNT(DISTINCT j.job_id) AS cross_cloud_query_jobs,
   ROUND(SUM(oss.cache_bytes_read) / 1e9, 3) AS local_cache_gb_read,
   ROUND(SUM(oss.object_storage_bytes_read) / 1e9, 3) AS remote_storage_gb_read,
@@ -34,7 +42,7 @@ WHERE
   AND j.statement_type != 'SCRIPT'
   AND j.error_result IS NULL
 GROUP BY
-  1, 2, 3
+  1, 2, 3, 4
 ORDER BY
   query_date DESC,
   avoided_public_egress_usd DESC;

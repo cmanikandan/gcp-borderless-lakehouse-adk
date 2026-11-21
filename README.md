@@ -1,4 +1,4 @@
-# Google Cloud Lakehouse POC — Cross-Cloud Federation, Caching, BigQuery AI & Google ADK 2.15
+# Google Cloud Lakehouse, BigQuery & Gemini — Cross-Cloud Analytics with Cross-Cloud Caching and Agent Development Kit
 
 ![Google Cloud Lakehouse cross-cloud architecture overview](docs/images/hero_borderless_lakehouse.png)
 
